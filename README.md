@@ -1,6 +1,6 @@
-# SyncSpace - Real-Time Video Conferencing & Collaboration Tool
+# Real-time app - Real-Time Video Conferencing & Collaboration Tool
 
-SyncSpace is a secure, real-time video calling and collaboration platform built with React, Django Channels (WebSockets), and WebRTC. It supports multi-user video calling, screen sharing, a shared real-time whiteboard, and end-to-end encrypted (E2EE) messaging and file sharing.
+Real-time app is a secure, real-time video calling and collaboration platform built with React, Django Channels (WebSockets), and WebRTC. It supports multi-user video calling, screen sharing, a shared real-time whiteboard, and end-to-end encrypted (E2EE) messaging and file sharing.
 
 ---
 
@@ -12,6 +12,23 @@ SyncSpace is a secure, real-time video calling and collaboration platform built 
 * **Secure File Sharing:** Files are encrypted client-side before upload, stored securely on the backend, and decrypted dynamically upon download by valid room participants.
 * **Live Synchronized Whiteboard:** A multiplayer canvas enabling collaborative drawing and writing synchronized in real-time via WebSockets.
 * **Secure Authentication:** User sign-up and log-in powered by Django REST Framework Token Authentication.
+
+---
+
+## 📸 Demo & Screenshots
+
+### Application Walkthrough (WebP Demo)
+![Real-time App Demo](public/demo.webp)
+
+### Screenshots
+
+| Sign In / Sign Up | Dashboard / Home Page |
+|---|---|
+| ![Authentication Screen](public/screenshot-auth.png) | ![Home Screen](public/screenshot-home.png) |
+
+| Room Chat (End-to-End Encrypted) |
+|---|
+| ![Room Chat Screen](public/screenshot-room.png) |
 
 ---
 

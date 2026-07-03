@@ -76,7 +76,7 @@ export default function RoomPage({ roomId, user, onLeave }: Props) {
             <Video className="w-3.5 h-3.5 text-primary-foreground" />
           </div>
           <div>
-            <span className="text-sm font-semibold">SyncSpace</span>
+            <span className="text-sm font-semibold">Real-time app</span>
             <span className="text-muted-foreground text-xs ml-2">Room: {roomId.slice(0, 8)}…</span>
           </div>
         </div>

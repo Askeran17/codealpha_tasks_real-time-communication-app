@@ -93,7 +93,7 @@ export default function HomePage({ user, onJoinRoom, onSignOut }: Props) {
             <div className="w-8 h-8 bg-gradient-to-br from-indigo-500 to-primary rounded-lg flex items-center justify-center shadow-sm">
               <Video className="w-4 h-4 text-primary-foreground" />
             </div>
-            <span className="text-lg font-bold">SyncSpace</span>
+            <span className="text-lg font-bold">Real-time app</span>
           </div>
           <div className="flex items-center gap-3">
             <Button

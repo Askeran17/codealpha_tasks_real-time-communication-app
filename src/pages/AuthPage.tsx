@@ -57,7 +57,7 @@ export default function AuthPage() {
             <div className="w-10 h-10 bg-primary-foreground rounded-xl flex items-center justify-center">
               <Video className="w-6 h-6 text-primary" />
             </div>
-            <span className="text-2xl font-bold text-primary-foreground">SyncSpace</span>
+            <span className="text-2xl font-bold text-primary-foreground">Real-time app</span>
           </div>
           <h1 className="text-4xl font-extrabold tracking-tight text-primary-foreground mb-4">
             Connect, collaborate, create.
@@ -89,7 +89,7 @@ export default function AuthPage() {
             <div className="w-8 h-8 bg-gradient-to-br from-indigo-600 via-primary to-violet-800 rounded-lg flex items-center justify-center">
               <Video className="w-4 h-4 text-primary-foreground" />
             </div>
-            <span className="text-xl font-bold">SyncSpace</span>
+            <span className="text-xl font-bold">Real-time app</span>
           </div>
 
           <Tabs defaultValue="signin">
@@ -102,7 +102,7 @@ export default function AuthPage() {
               <Card>
                 <CardHeader>
                   <CardTitle>Welcome back</CardTitle>
-                  <CardDescription>Sign in to your SyncSpace account</CardDescription>
+                  <CardDescription>Sign in to your Real-time app account</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <form onSubmit={handleSignIn} className="space-y-4">
@@ -140,7 +140,7 @@ export default function AuthPage() {
               <Card>
                 <CardHeader>
                   <CardTitle>Create an account</CardTitle>
-                  <CardDescription>Join SyncSpace for free</CardDescription>
+                  <CardDescription>Join Real-time app for free</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <form onSubmit={handleSignUp} className="space-y-4">
