@@ -1,0 +1,16 @@
+.git
+.github
+.env
+.bolt
+.vscode
+node_modules
+dist
+backend/venv
+backend/db.sqlite3
+backend/media
+backend/staticfiles
+__pycache__
+*.pyc
+.DS_Store
+.idea
+*.log

@@ -1,0 +1,392 @@
+import { useState, useEffect, useRef, useCallback } from "react"
+import { api, connectRoomSocket, type Message, type SharedFile, type AuthUser } from "@/lib/api"
+import { deriveKey, encryptText, decryptText, encryptFile, decryptFile } from "@/lib/crypto"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { ScrollArea } from "@/components/ui/scroll-area"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Badge } from "@/components/ui/badge"
+import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { Separator } from "@/components/ui/separator"
+import { toast } from "sonner"
+import { Send, Paperclip, File, Download, Upload, Image, FileText, Film, Lock } from "lucide-react"
+import { cn } from "@/lib/utils"
+import { formatDistanceToNow } from "date-fns"
+
+type Props = {
+  roomId: string
+  user: AuthUser
+}
+
+const MAX_FILE_SIZE = 50 * 1024 * 1024 // 50MB
+
+function fileIcon(type: string) {
+  if (type.startsWith("image/")) return Image
+  if (type.startsWith("video/")) return Film
+  if (type.includes("pdf") || type.startsWith("text/")) return FileText
+  return File
+}
+
+function formatBytes(bytes: number) {
+  if (bytes < 1024) return `${bytes} B`
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+}
+
+export default function ChatPanel({ roomId, user }: Props) {
+  const [messages, setMessages] = useState<Message[]>([])
+  const [files, setFiles] = useState<SharedFile[]>([])
+  const [newMessage, setNewMessage] = useState("")
+  const [sending, setSending] = useState(false)
+  const [uploading, setUploading] = useState(false)
+  const [cryptoKey, setCryptoKey] = useState<CryptoKey | null>(null)
+  
+  const scrollRef = useRef<HTMLDivElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const socketRef = useRef<WebSocket | null>(null)
+  
+  const displayName = user.user_metadata?.display_name || user.username || "User"
+
+  const scrollToBottom = () => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight
+    }
+  }
+
+  // Derive E2EE Key on mount
+  useEffect(() => {
+    deriveKey(roomId).then(setCryptoKey)
+  }, [roomId])
+
+  const fetchMessages = useCallback(async () => {
+    if (!cryptoKey) return
+    try {
+      const data = await api.getRoomMessages(roomId)
+      // Decrypt all message contents
+      const decrypted = await Promise.all(
+        data.map(async (msg) => {
+          if (msg.iv) {
+            const dec = await decryptText(msg.content, msg.iv, cryptoKey)
+            return { ...msg, content: dec }
+          }
+          return msg
+        })
+      )
+      setMessages(decrypted)
+    } catch {
+      toast.error("Failed to load chat history")
+    }
+  }, [roomId, cryptoKey])
+
+  const fetchFiles = useCallback(async () => {
+    try {
+      const data = await api.listRoomFiles(roomId)
+      setFiles(data)
+    } catch {
+      toast.error("Failed to load shared files")
+    }
+  }, [roomId])
+
+  useEffect(() => {
+    if (!cryptoKey) return
+    
+    fetchMessages()
+    fetchFiles()
+
+    // Connect Room Socket for real-time chat & file alerts
+    const ws = connectRoomSocket(
+      roomId,
+      async (msg) => {
+        if (msg.type === "chat") {
+          // Decrypt chat message on receipt
+          if (msg.payload && msg.payload.content && msg.payload.iv) {
+            const dec = await decryptText(msg.payload.content, msg.payload.iv, cryptoKey)
+            const formatted: Message = {
+              id: msg.id || String(Math.random()),
+              room_id: roomId,
+              user_id: msg.from_user,
+              display_name: msg.display_name,
+              content: dec,
+              created_at: msg.created_at || new Date().toISOString()
+            }
+            setMessages((prev) => {
+              if (prev.some((m) => m.id === formatted.id)) return prev
+              return [...prev, formatted]
+            })
+            setTimeout(scrollToBottom, 50)
+          }
+        }
+        else if (msg.type === "file-shared") {
+          // Reload file list
+          fetchFiles()
+        }
+      }
+    )
+    socketRef.current = ws
+
+    return () => {
+      ws.close()
+    }
+  }, [fetchMessages, fetchFiles, roomId, cryptoKey])
+
+  useEffect(() => {
+    setTimeout(scrollToBottom, 100)
+  }, [messages])
+
+  const sendMessage = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!newMessage.trim() || sending || !cryptoKey || !socketRef.current) return
+    setSending(true)
+
+    try {
+      // Encrypt message content before broadcasting
+      const { ciphertext, iv } = await encryptText(newMessage.trim(), cryptoKey)
+      
+      socketRef.current.send(
+        JSON.stringify({
+          type: "chat",
+          room_id: roomId,
+          from_user: user.id,
+          display_name: displayName,
+          payload: {
+            content: ciphertext,
+            iv: iv
+          }
+        })
+      )
+      setNewMessage("")
+    } catch (err) {
+      console.error(err)
+      toast.error("Failed to encrypt/send message")
+    } finally {
+      setSending(false)
+    }
+  }
+
+  const uploadFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file || !cryptoKey || !socketRef.current) return
+    if (file.size > MAX_FILE_SIZE) {
+      toast.error("File too large (max 50MB)")
+      return
+    }
+
+    setUploading(true)
+    const toastId = toast.loading(`Encrypting & uploading ${file.name}...`)
+
+    try {
+      // 1. Encrypt file locally on the client
+      const { encryptedBlob, iv } = await encryptFile(file, cryptoKey)
+
+      // 2. POST encrypted blob to Django
+      await api.uploadFile(
+        roomId,
+        encryptedBlob,
+        file.name,
+        file.size,
+        file.type || "application/octet-stream",
+        displayName,
+        iv
+      )
+
+      // 3. Broadcast WebSocket notification so others reload file list
+      socketRef.current.send(
+        JSON.stringify({
+          type: "file-shared",
+          room_id: roomId,
+          from_user: user.id,
+          payload: {}
+        })
+      )
+
+      toast.success(`${file.name} shared securely!`, { id: toastId })
+      fetchFiles()
+    } catch (err) {
+      console.error(err)
+      toast.error("Failed to encrypt or upload file", { id: toastId })
+    } finally {
+      setUploading(false)
+      if (e.target) e.target.value = ""
+    }
+  }
+
+  const downloadFile = async (file: SharedFile) => {
+    if (!cryptoKey) return
+    const toastId = toast.loading(`Downloading & decrypting ${file.file_name}...`)
+    try {
+      // 1. Fetch encrypted binary blob from Django
+      const encryptedBlob = await api.downloadFile(file.file_url)
+
+      // 2. Decrypt binary blob locally on client
+      const decryptedBlob = await decryptFile(encryptedBlob, file.iv || "", file.file_type, cryptoKey)
+
+      // 3. Trigger download of the decrypted blob
+      const url = URL.createObjectURL(decryptedBlob)
+      const a = document.createElement("a")
+      a.href = url
+      a.download = file.file_name
+      a.click()
+      URL.revokeObjectURL(url)
+      
+      toast.success("Decrypted successfully!", { id: toastId })
+    } catch (err) {
+      console.error(err)
+      toast.error("Decryption failed. Invalid room key.", { id: toastId })
+    }
+  }
+
+  const getInitials = (name: string) =>
+    name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2)
+
+  return (
+    <div className="flex flex-col h-full">
+      <Tabs defaultValue="chat" className="flex flex-col h-full">
+        <div className="px-3 pt-3">
+          <TabsList className="w-full">
+            <TabsTrigger value="chat" className="flex-1">Chat</TabsTrigger>
+            <TabsTrigger value="files" className="flex-1">
+              Files
+              {files.length > 0 && (
+                <Badge variant="secondary" className="ml-1.5 text-xs px-1.5 py-0 h-4">{files.length}</Badge>
+              )}
+            </TabsTrigger>
+          </TabsList>
+        </div>
+
+        {/* Chat tab */}
+        <TabsContent value="chat" className="flex flex-col flex-1 overflow-hidden mt-0 px-0">
+          <div className="bg-emerald-500/10 px-3 py-1.5 flex items-center gap-1.5 text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold uppercase tracking-wider select-none shrink-0 border-b border-border">
+            <Lock className="w-3.5 h-3.5" />
+            <span>End-to-End Encrypted (AES-GCM)</span>
+          </div>
+          <ScrollArea className="flex-1 px-3">
+            <div ref={scrollRef} className="space-y-3 py-3">
+              {messages.length === 0 && (
+                <div className="text-center text-muted-foreground text-sm py-8">
+                  No messages yet. Start the conversation!
+                </div>
+              )}
+              {messages.map((msg) => {
+                const isOwn = msg.user_id === user.id
+                return (
+                  <div key={msg.id} className={cn("flex gap-2", isOwn && "flex-row-reverse")}>
+                    {!isOwn && (
+                      <Avatar className="w-7 h-7 shrink-0 mt-0.5">
+                        <AvatarFallback className="text-xs bg-secondary text-secondary-foreground">
+                          {getInitials(msg.display_name)}
+                        </AvatarFallback>
+                      </Avatar>
+                    )}
+                    <div className={cn("max-w-[75%] space-y-0.5", isOwn && "items-end flex flex-col")}>
+                      {!isOwn && (
+                        <span className="text-xs text-muted-foreground font-medium">{msg.display_name}</span>
+                      )}
+                      <div
+                        className={cn(
+                          "px-3 py-2 rounded-2xl text-sm leading-snug",
+                          isOwn
+                            ? "bg-primary text-primary-foreground rounded-tr-sm"
+                            : "bg-muted text-foreground rounded-tl-sm"
+                        )}
+                      >
+                        {msg.content}
+                      </div>
+                      <span className="text-xs text-muted-foreground">
+                        {formatDistanceToNow(new Date(msg.created_at), { addSuffix: true })}
+                      </span>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </ScrollArea>
+          <Separator />
+          <form onSubmit={sendMessage} className="flex items-center gap-2 p-3">
+            <Input
+              value={newMessage}
+              onChange={(e) => setNewMessage(e.target.value)}
+              placeholder="Type a secure message..."
+              className="flex-1 h-8 text-sm"
+              disabled={sending || !cryptoKey}
+            />
+            <Button type="submit" size="sm" className="h-8 w-8 p-0" disabled={sending || !newMessage.trim() || !cryptoKey}>
+              <Send className="w-3.5 h-3.5" />
+            </Button>
+          </form>
+        </TabsContent>
+
+        {/* Files tab */}
+        <TabsContent value="files" className="flex flex-col flex-1 overflow-hidden mt-0">
+          <div className="bg-emerald-500/10 px-3 py-1.5 flex items-center gap-1.5 text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold uppercase tracking-wider select-none shrink-0 border-b border-border">
+            <Lock className="w-3.5 h-3.5" />
+            <span>Files Encrypted before upload</span>
+          </div>
+          <div className="px-3 py-2">
+            <input
+              ref={fileInputRef}
+              type="file"
+              className="hidden"
+              onChange={uploadFile}
+            />
+            <Button
+              size="sm"
+              variant="outline"
+              className="w-full h-8 text-xs"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploading || !cryptoKey}
+            >
+              {uploading ? (
+                <>Uploading...</>
+              ) : (
+                <>
+                  <Upload className="w-3.5 h-3.5 mr-1.5" />
+                  Securely Share File
+                </>
+              )}
+            </Button>
+          </div>
+          <Separator />
+          <ScrollArea className="flex-1 px-3">
+            <div className="space-y-2 py-3">
+              {files.length === 0 && (
+                <div className="text-center text-muted-foreground text-sm py-8">
+                  No files shared yet
+                </div>
+              )}
+              {files.map((file) => {
+                const Icon = fileIcon(file.file_type)
+                return (
+                  <div key={file.id} className="flex items-center gap-2 p-2 rounded-lg bg-muted/50 hover:bg-muted transition-colors">
+                    <div className="w-8 h-8 rounded bg-background flex items-center justify-center shrink-0">
+                      <Icon className="w-4 h-4 text-muted-foreground" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-xs font-medium truncate">{file.file_name}</div>
+                      <div className="text-xs text-muted-foreground">
+                        {formatBytes(file.file_size)} · {file.display_name}
+                      </div>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-7 w-7 p-0 shrink-0"
+                      onClick={() => downloadFile(file)}
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                    </Button>
+                  </div>
+                )
+              })}
+            </div>
+          </ScrollArea>
+          <div className="px-3 py-2 border-t border-border">
+            <p className="text-xs text-muted-foreground flex items-center gap-1">
+              <Paperclip className="w-3 h-3" />
+              Max 50MB per file
+            </p>
+          </div>
+        </TabsContent>
+      </Tabs>
+    </div>
+  )
+}
