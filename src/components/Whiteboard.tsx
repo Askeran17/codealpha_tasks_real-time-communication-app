@@ -33,7 +33,9 @@ export default function Whiteboard({ roomId, user }: Props) {
   const [color, setColor] = useState("#000000")
   const [size, setSize] = useState(3)
 
-  const getCtx = () => canvasRef.current?.getContext("2d") ?? null
+  // willReadFrequently: the resize handler reads pixel data back out via
+  // getImageData on every window resize, which Chrome otherwise warns about.
+  const getCtx = () => canvasRef.current?.getContext("2d", { willReadFrequently: true }) ?? null
 
   const drawLine = useCallback((x0: number, y0: number, x1: number, y1: number, strokeColor: string, strokeSize: number, erase: boolean) => {
     const ctx = getCtx()
@@ -96,10 +98,10 @@ export default function Whiteboard({ roomId, user }: Props) {
       const container = containerRef.current
       if (!canvas || !container) return
       // Save current drawing
-      const imageData = canvas.getContext("2d")?.getImageData(0, 0, canvas.width, canvas.height)
+      const imageData = getCtx()?.getImageData(0, 0, canvas.width, canvas.height)
       canvas.width = container.clientWidth
       canvas.height = container.clientHeight
-      if (imageData) canvas.getContext("2d")?.putImageData(imageData, 0, 0)
+      if (imageData) getCtx()?.putImageData(imageData, 0, 0)
     }
     resize()
     window.addEventListener("resize", resize)
