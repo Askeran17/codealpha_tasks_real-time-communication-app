@@ -98,6 +98,27 @@ To run this project locally, you will need to start both the React frontend and 
 
 ---
 
+## ✅ Testing
+
+### Backend (Django)
+34 tests covering models, serializers, REST views, and the WebSocket consumer (auth handshake, chat persistence, signalling relay).
+
+```bash
+cd backend
+source venv/bin/activate
+python manage.py test
+```
+
+### Frontend (Vitest)
+18 unit tests covering the AES-GCM encryption helpers (`src/lib/crypto.ts`), the API client (`src/lib/api.ts`), and utility functions (`src/lib/utils.ts`).
+
+```bash
+npm run test        # single run
+npm run test:watch  # watch mode
+```
+
+---
+
 ## 🐳 Docker & Production Deployment (Render)
 
 This project is optimized to run as a **monolith Docker container**. It builds the React frontend, places it inside Django, runs Django's `collectstatic` command, and serves both static files and ASGI WebSockets using a single container.
