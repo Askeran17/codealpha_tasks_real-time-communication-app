@@ -8,10 +8,18 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Separator } from "@/components/ui/separator"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import { toast } from "sonner"
-import { Video, Plus, LogOut, Users, Clock, Trash2, ArrowRight, Sun, Moon } from "lucide-react"
+import { Video, Plus, LogOut, Users, Clock, Trash2, ArrowRight, Sun, Moon, Settings, Menu } from "lucide-react"
 import { useTheme } from "@/components/theme-provider"
 import SettingsDialog from "@/components/SettingsDialog"
+import { cn, getAvatarColor } from "@/lib/utils"
 
 type Props = {
   user: AuthUser
@@ -26,6 +34,7 @@ export default function HomePage({ user, onJoinRoom, onSignOut }: Props) {
   const [dialogOpen, setDialogOpen] = useState(false)
   const [newRoomName, setNewRoomName] = useState("")
   const [newRoomDesc, setNewRoomDesc] = useState("")
+  const [settingsOpen, setSettingsOpen] = useState(false)
   const { theme, setTheme } = useTheme()
 
   const displayName = user.user_metadata?.display_name || user.username || "User"
@@ -96,7 +105,8 @@ export default function HomePage({ user, onJoinRoom, onSignOut }: Props) {
             </div>
             <span className="text-lg font-bold">Real-time app</span>
           </div>
-          <div className="flex items-center gap-3">
+          {/* Desktop controls */}
+          <div className="hidden sm:flex items-center gap-3">
             <Button
               variant="ghost"
               size="icon"
@@ -108,21 +118,77 @@ export default function HomePage({ user, onJoinRoom, onSignOut }: Props) {
               <span className="sr-only">Toggle theme</span>
             </Button>
             <Separator orientation="vertical" className="h-5" />
-            <SettingsDialog user={user} />
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setSettingsOpen(true)}
+              className="w-9 h-9 rounded-full bg-secondary/50 hover:bg-secondary border border-border/50 text-foreground"
+            >
+              <Settings className="w-4 h-4" />
+              <span className="sr-only">Settings</span>
+            </Button>
             <div className="flex items-center gap-2">
               <Avatar className="w-8 h-8">
                 <AvatarFallback className="text-xs bg-primary text-primary-foreground">
                   {getInitials(displayName)}
                 </AvatarFallback>
               </Avatar>
-              <span className="text-sm font-medium hidden sm:block">{displayName}</span>
+              <span className="text-sm font-medium">{displayName}</span>
             </div>
             <Button variant="ghost" size="sm" onClick={onSignOut}>
               <LogOut className="w-4 h-4" />
             </Button>
           </div>
+
+          {/* Mobile controls */}
+          <div className="flex sm:hidden items-center gap-2">
+            <Avatar className="w-8 h-8">
+              <AvatarFallback className={cn("text-xs text-white", getAvatarColor(displayName))}>
+                {getInitials(displayName)}
+              </AvatarFallback>
+            </Avatar>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="w-9 h-9 rounded-full bg-secondary/50 hover:bg-secondary border border-border/50 text-foreground"
+                >
+                  <Menu className="w-4 h-4" />
+                  <span className="sr-only">Open menu</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuItem
+                  onSelect={(e) => {
+                    e.preventDefault()
+                    setTheme(theme === "dark" ? "light" : "dark")
+                  }}
+                >
+                  {theme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+                  Toggle theme
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onSelect={(e) => {
+                    e.preventDefault()
+                    setSettingsOpen(true)
+                  }}
+                >
+                  <Settings className="w-4 h-4" />
+                  Settings
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem variant="destructive" onSelect={onSignOut}>
+                  <LogOut className="w-4 h-4" />
+                  Sign Out
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </div>
       </header>
+
+      <SettingsDialog user={user} open={settingsOpen} onOpenChange={setSettingsOpen} />
 
       {/* Main */}
       <main className="max-w-5xl mx-auto px-6 py-10">
@@ -210,8 +276,8 @@ export default function HomePage({ user, onJoinRoom, onSignOut }: Props) {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {rooms.map((room) => (
               <Card key={room.id} className="group hover:shadow-lg hover:border-primary/40 hover:-translate-y-0.5 transition-all duration-300">
-                <CardHeader className="pb-3">
-                  <div className="flex items-start justify-between">
+                <CardHeader className="pb-3 min-w-0">
+                  <div className="flex items-start justify-between min-w-0">
                     <div className="flex-1 min-w-0">
                       <CardTitle className="text-base truncate">{room.name}</CardTitle>
                       {room.description && (
@@ -220,7 +286,7 @@ export default function HomePage({ user, onJoinRoom, onSignOut }: Props) {
                         </CardDescription>
                       )}
                     </div>
-                    <Badge variant="secondary" className="ml-2 shrink-0 text-xs">
+                    <Badge className="ml-2 shrink-0 text-xs bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/15">
                       <Users className="w-3 h-3 mr-1" />
                       Live
                     </Badge>

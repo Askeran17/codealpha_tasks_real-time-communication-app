@@ -3,17 +3,17 @@ import { api, type AuthUser } from "@/lib/api"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { toast } from "sonner"
-import { Settings } from "lucide-react"
 
 type Props = {
   user: AuthUser
+  open: boolean
+  onOpenChange: (open: boolean) => void
 }
 
-export default function SettingsDialog({ user }: Props) {
-  const [open, setOpen] = useState(false)
+export default function SettingsDialog({ user, open, onOpenChange }: Props) {
   const [displayName, setDisplayName] = useState(user.user_metadata?.display_name || "")
   const [email, setEmail] = useState(user.email)
   const [savingProfile, setSavingProfile] = useState(false)
@@ -62,17 +62,7 @@ export default function SettingsDialog({ user }: Props) {
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="w-9 h-9 rounded-full bg-secondary/50 hover:bg-secondary border border-border/50 text-foreground"
-        >
-          <Settings className="w-4 h-4" />
-          <span className="sr-only">Settings</span>
-        </Button>
-      </DialogTrigger>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Account Settings</DialogTitle>

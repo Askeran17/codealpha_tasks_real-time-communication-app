@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { cn } from "./utils"
+import { cn, getAvatarColor } from "./utils"
 
 describe("cn", () => {
   it("joins multiple class names", () => {
@@ -16,5 +16,21 @@ describe("cn", () => {
 
   it("supports conditional object syntax", () => {
     expect(cn("base", { active: true, disabled: false })).toBe("base active")
+  })
+})
+
+describe("getAvatarColor", () => {
+  it("returns the same color for the same seed", () => {
+    expect(getAvatarColor("alice")).toBe(getAvatarColor("alice"))
+  })
+
+  it("returns a bg-* Tailwind class", () => {
+    expect(getAvatarColor("bob")).toMatch(/^bg-/)
+  })
+
+  it("distributes different seeds across more than one color", () => {
+    const seeds = ["alice", "bob", "carol", "dave", "erin", "frank", "grace", "heidi"]
+    const colors = new Set(seeds.map((s) => getAvatarColor(s)))
+    expect(colors.size).toBeGreaterThan(1)
   })
 })

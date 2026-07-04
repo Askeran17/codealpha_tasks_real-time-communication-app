@@ -10,7 +10,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Separator } from "@/components/ui/separator"
 import { toast } from "sonner"
 import { Send, Paperclip, File, Download, Upload, Image, FileText, Film, Lock } from "lucide-react"
-import { cn } from "@/lib/utils"
+import { cn, getAvatarColor } from "@/lib/utils"
 import { formatDistanceToNow } from "date-fns"
 
 type Props = {
@@ -272,7 +272,7 @@ export default function ChatPanel({ roomId, user }: Props) {
                   <div key={msg.id} className={cn("flex gap-2", isOwn && "flex-row-reverse")}>
                     {!isOwn && (
                       <Avatar className="w-7 h-7 shrink-0 mt-0.5">
-                        <AvatarFallback className="text-xs bg-secondary text-secondary-foreground">
+                        <AvatarFallback className={cn("text-xs text-white", getAvatarColor(msg.display_name))}>
                           {getInitials(msg.display_name)}
                         </AvatarFallback>
                       </Avatar>

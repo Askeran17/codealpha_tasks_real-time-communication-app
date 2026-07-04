@@ -2,7 +2,7 @@ import { useCallback } from "react"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { MicOff, VideoOff, Monitor } from "lucide-react"
-import { cn } from "@/lib/utils"
+import { cn, getAvatarColor } from "@/lib/utils"
 
 type Props = {
   stream: MediaStream | null
@@ -62,7 +62,7 @@ export default function VideoTile({
       ) : (
         <div className="flex flex-col items-center gap-2">
           <Avatar className="w-16 h-16">
-            <AvatarFallback className="text-xl bg-primary text-primary-foreground">
+            <AvatarFallback className={cn("text-xl text-white", getAvatarColor(displayName))}>
               {initials}
             </AvatarFallback>
           </Avatar>

@@ -94,166 +94,169 @@ export default function RoomPage({ roomId, user, onLeave }: Props) {
       </header>
 
       {/* Main content */}
-      <div className="flex flex-1 overflow-hidden">
-        {/* Video area */}
-        <div className="flex-1 flex flex-col overflow-hidden">
-          <div className={cn("flex-1 grid gap-2 p-3 overflow-auto content-start", gridCols)}>
-            {/* Local video */}
-            <VideoTile
-              stream={localState.screenSharing ? screenStream : localStream}
-              displayName={displayName}
-              audioEnabled={localState.audioEnabled}
-              videoEnabled={localState.videoEnabled || localState.screenSharing}
-              screenSharing={localState.screenSharing}
-              isLocal
-            />
-            {/* Remote peers */}
-            {peersArray.map((peer) => (
+      <div className="flex flex-col flex-1 overflow-hidden">
+        <div className="flex flex-1 overflow-hidden">
+          {/* Video area */}
+          <div className={cn("flex-1 overflow-hidden", activePanel && "hidden sm:block")}>
+            <div className={cn("h-full grid gap-2 p-3 overflow-auto content-start", gridCols)}>
+              {/* Local video */}
               <VideoTile
-                key={peer.userId}
-                stream={peer.stream}
-                displayName={peer.displayName}
-                audioEnabled={peer.audioEnabled}
-                videoEnabled={peer.videoEnabled}
-                screenSharing={peer.screenSharing}
+                stream={localState.screenSharing ? screenStream : localStream}
+                displayName={displayName}
+                audioEnabled={localState.audioEnabled}
+                videoEnabled={localState.videoEnabled || localState.screenSharing}
+                screenSharing={localState.screenSharing}
+                isLocal
               />
-            ))}
+              {/* Remote peers */}
+              {peersArray.map((peer) => (
+                <VideoTile
+                  key={peer.userId}
+                  stream={peer.stream}
+                  displayName={peer.displayName}
+                  audioEnabled={peer.audioEnabled}
+                  videoEnabled={peer.videoEnabled}
+                  screenSharing={peer.screenSharing}
+                />
+              ))}
+            </div>
           </div>
 
-          {/* Controls bar */}
-          <div className="shrink-0 flex items-center justify-center gap-2 px-4 py-3 border-t border-border bg-card/85 backdrop-blur-md">
-            <Tooltip>
-              <TooltipTrigger asChild>
+          {/* Side panel */}
+          {activePanel && (
+            <div
+              className={cn(
+                "flex-1 flex flex-col overflow-hidden",
+                "sm:flex-none sm:w-80 sm:border-l sm:border-border",
+                activePanel === "whiteboard" && "sm:w-96"
+              )}
+            >
+              <div className="flex items-center justify-between px-3 py-2 border-b border-border bg-card/85 backdrop-blur-md shrink-0">
+                <div className="flex items-center gap-2">
+                  {activePanel === "chat" ? (
+                    <>
+                      <MessageSquare className="w-4 h-4 text-muted-foreground" />
+                      <span className="text-sm font-semibold">Chat & Files</span>
+                    </>
+                  ) : (
+                    <>
+                      <PenLine className="w-4 h-4 text-muted-foreground" />
+                      <span className="text-sm font-semibold">Whiteboard</span>
+                      <Badge className="text-xs bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/15">Live</Badge>
+                    </>
+                  )}
+                </div>
                 <Button
                   size="sm"
-                  variant={localState.audioEnabled ? "outline" : "destructive"}
-                  className="h-10 w-10 p-0 rounded-full"
-                  onClick={toggleAudio}
+                  variant="ghost"
+                  className="h-6 w-6 p-0 text-muted-foreground"
+                  onClick={() => setActivePanel(null)}
                 >
-                  {localState.audioEnabled ? <Mic className="w-4 h-4" /> : <MicOff className="w-4 h-4" />}
+                  ×
                 </Button>
-              </TooltipTrigger>
-              <TooltipContent>{localState.audioEnabled ? "Mute" : "Unmute"}</TooltipContent>
-            </Tooltip>
-
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  size="sm"
-                  variant={localState.videoEnabled ? "outline" : "destructive"}
-                  className="h-10 w-10 p-0 rounded-full"
-                  onClick={toggleVideo}
-                >
-                  {localState.videoEnabled ? <Video className="w-4 h-4" /> : <VideoOff className="w-4 h-4" />}
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>{localState.videoEnabled ? "Stop Video" : "Start Video"}</TooltipContent>
-            </Tooltip>
-
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  size="sm"
-                  variant={localState.screenSharing ? "default" : "outline"}
-                  className="h-10 w-10 p-0 rounded-full"
-                  onClick={handleScreenShare}
-                >
-                  {localState.screenSharing ? <MonitorOff className="w-4 h-4" /> : <Monitor className="w-4 h-4" />}
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>{localState.screenSharing ? "Stop Sharing" : "Share Screen"}</TooltipContent>
-            </Tooltip>
-
-            <Separator orientation="vertical" className="h-6" />
-
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  size="sm"
-                  variant={activePanel === "chat" ? "default" : "outline"}
-                  className="h-10 w-10 p-0 rounded-full relative"
-                  onClick={() => togglePanel("chat")}
-                >
-                  <MessageSquare className="w-4 h-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Chat & Files</TooltipContent>
-            </Tooltip>
-
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  size="sm"
-                  variant={activePanel === "whiteboard" ? "default" : "outline"}
-                  className="h-10 w-10 p-0 rounded-full"
-                  onClick={() => togglePanel("whiteboard")}
-                >
-                  <PenLine className="w-4 h-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Whiteboard</TooltipContent>
-            </Tooltip>
-
-            <Separator orientation="vertical" className="h-6" />
-
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  size="sm"
-                  variant="destructive"
-                  className="h-10 px-4 rounded-full"
-                  onClick={onLeave}
-                >
-                  <PhoneOff className="w-4 h-4 mr-2" />
-                  Leave
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Leave Room</TooltipContent>
-            </Tooltip>
-          </div>
-        </div>
-
-        {/* Side panel */}
-        {activePanel && (
-          <div
-            className={cn(
-              "w-80 shrink-0 border-l border-border flex flex-col overflow-hidden",
-              activePanel === "whiteboard" && "w-96"
-            )}
-          >
-            <div className="flex items-center justify-between px-3 py-2 border-b border-border bg-card/85 backdrop-blur-md shrink-0">
-              <div className="flex items-center gap-2">
+              </div>
+              <div className="flex-1 overflow-hidden">
                 {activePanel === "chat" ? (
-                  <>
-                    <MessageSquare className="w-4 h-4 text-muted-foreground" />
-                    <span className="text-sm font-semibold">Chat & Files</span>
-                  </>
+                  <ChatPanel roomId={roomId} user={user} />
                 ) : (
-                  <>
-                    <PenLine className="w-4 h-4 text-muted-foreground" />
-                    <span className="text-sm font-semibold">Whiteboard</span>
-                    <Badge variant="secondary" className="text-xs">Live</Badge>
-                  </>
+                  <Whiteboard roomId={roomId} user={user} />
                 )}
               </div>
+            </div>
+          )}
+        </div>
+
+        {/* Controls bar */}
+        <div className="shrink-0 flex flex-wrap items-center justify-center gap-2 px-4 py-3 border-t border-border bg-card/85 backdrop-blur-md">
+          <Tooltip>
+            <TooltipTrigger asChild>
               <Button
                 size="sm"
-                variant="ghost"
-                className="h-6 w-6 p-0 text-muted-foreground"
-                onClick={() => setActivePanel(null)}
+                variant={localState.audioEnabled ? "outline" : "destructive"}
+                className="h-10 w-10 p-0 rounded-full"
+                onClick={toggleAudio}
               >
-                ×
+                {localState.audioEnabled ? <Mic className="w-4 h-4" /> : <MicOff className="w-4 h-4" />}
               </Button>
-            </div>
-            <div className="flex-1 overflow-hidden">
-              {activePanel === "chat" ? (
-                <ChatPanel roomId={roomId} user={user} />
-              ) : (
-                <Whiteboard roomId={roomId} user={user} />
-              )}
-            </div>
-          </div>
-        )}
+            </TooltipTrigger>
+            <TooltipContent>{localState.audioEnabled ? "Mute" : "Unmute"}</TooltipContent>
+          </Tooltip>
+
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                size="sm"
+                variant={localState.videoEnabled ? "outline" : "destructive"}
+                className="h-10 w-10 p-0 rounded-full"
+                onClick={toggleVideo}
+              >
+                {localState.videoEnabled ? <Video className="w-4 h-4" /> : <VideoOff className="w-4 h-4" />}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>{localState.videoEnabled ? "Stop Video" : "Start Video"}</TooltipContent>
+          </Tooltip>
+
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                size="sm"
+                variant={localState.screenSharing ? "default" : "outline"}
+                className="h-10 w-10 p-0 rounded-full"
+                onClick={handleScreenShare}
+              >
+                {localState.screenSharing ? <MonitorOff className="w-4 h-4" /> : <Monitor className="w-4 h-4" />}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>{localState.screenSharing ? "Stop Sharing" : "Share Screen"}</TooltipContent>
+          </Tooltip>
+
+          <Separator orientation="vertical" className="h-6" />
+
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                size="sm"
+                variant={activePanel === "chat" ? "default" : "outline"}
+                className="h-10 w-10 p-0 rounded-full relative"
+                onClick={() => togglePanel("chat")}
+              >
+                <MessageSquare className="w-4 h-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Chat & Files</TooltipContent>
+          </Tooltip>
+
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                size="sm"
+                variant={activePanel === "whiteboard" ? "default" : "outline"}
+                className="h-10 w-10 p-0 rounded-full"
+                onClick={() => togglePanel("whiteboard")}
+              >
+                <PenLine className="w-4 h-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Whiteboard</TooltipContent>
+          </Tooltip>
+
+          <Separator orientation="vertical" className="h-6" />
+
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                size="sm"
+                variant="destructive"
+                className="h-10 px-4 rounded-full"
+                onClick={onLeave}
+              >
+                <PhoneOff className="w-4 h-4 mr-2" />
+                Leave
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Leave Room</TooltipContent>
+          </Tooltip>
+        </div>
       </div>
     </div>
   )

@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { toast } from "sonner"
 import { Video, Shield, Users, Monitor } from "lucide-react"
+import { cn } from "@/lib/utils"
 
 export default function AuthPage() {
   const [email, setEmail] = useState("")
@@ -68,13 +69,13 @@ export default function AuthPage() {
         </div>
         <div className="grid grid-cols-2 gap-4">
           {[
-            { icon: Video, label: "HD Video Calls", desc: "Multi-user WebRTC" },
-            { icon: Monitor, label: "Screen Share", desc: "Share any window" },
-            { icon: Users, label: "Collaboration", desc: "Live whiteboard" },
-            { icon: Shield, label: "Encrypted", desc: "DTLS/SRTP/AES-GCM secured" },
-          ].map(({ icon: Icon, label, desc }) => (
+            { icon: Video, label: "HD Video Calls", desc: "Multi-user WebRTC", color: "text-sky-300" },
+            { icon: Monitor, label: "Screen Share", desc: "Share any window", color: "text-amber-300" },
+            { icon: Users, label: "Collaboration", desc: "Live whiteboard", color: "text-violet-300" },
+            { icon: Shield, label: "Encrypted", desc: "DTLS/SRTP/AES-GCM secured", color: "text-emerald-300" },
+          ].map(({ icon: Icon, label, desc, color }) => (
             <div key={label} className="bg-primary-foreground/10 rounded-xl p-4">
-              <Icon className="w-5 h-5 text-primary-foreground mb-2" />
+              <Icon className={cn("w-5 h-5 mb-2", color)} />
               <div className="text-sm font-semibold text-primary-foreground">{label}</div>
               <div className="text-xs text-primary-foreground/60">{desc}</div>
             </div>
