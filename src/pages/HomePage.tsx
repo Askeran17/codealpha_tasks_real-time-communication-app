@@ -133,26 +133,28 @@ export default function HomePage({ user, onJoinRoom, onSignOut }: Props) {
           </div>
           {/* Desktop controls */}
           <div className="hidden sm:flex items-center gap-3">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-              className="w-9 h-9 rounded-full bg-secondary/50 hover:bg-secondary border border-border/50 text-foreground transition-all duration-300 relative overflow-hidden group cursor-pointer"
-            >
-              <Sun className="h-[1.1rem] w-[1.1rem] transition-all duration-500 rotate-0 scale-100 dark:-rotate-90 dark:scale-0 text-amber-500" />
-              <Moon className="absolute h-[1.1rem] w-[1.1rem] transition-all duration-500 rotate-90 scale-0 dark:rotate-0 dark:scale-100 text-stone-400" />
-              <span className="sr-only">Toggle theme</span>
-            </Button>
+            <div className="flex items-center gap-1.5">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+                className="w-9 h-9 rounded-full bg-secondary/50 hover:bg-secondary border border-border/50 text-foreground transition-all duration-300 relative overflow-hidden group cursor-pointer"
+              >
+                <Sun className="h-[1.1rem] w-[1.1rem] transition-all duration-500 rotate-0 scale-100 dark:-rotate-90 dark:scale-0 text-amber-500" />
+                <Moon className="absolute h-[1.1rem] w-[1.1rem] transition-all duration-500 rotate-90 scale-0 dark:rotate-0 dark:scale-100 text-stone-400" />
+                <span className="sr-only">Toggle theme</span>
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setSettingsOpen(true)}
+                className="w-9 h-9 rounded-full bg-secondary/50 hover:bg-secondary border border-border/50 text-foreground"
+              >
+                <Settings className="w-4 h-4" />
+                <span className="sr-only">Settings</span>
+              </Button>
+            </div>
             <Separator orientation="vertical" className="h-5" />
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setSettingsOpen(true)}
-              className="w-9 h-9 rounded-full bg-secondary/50 hover:bg-secondary border border-border/50 text-foreground"
-            >
-              <Settings className="w-4 h-4" />
-              <span className="sr-only">Settings</span>
-            </Button>
             <div className="flex items-center gap-2">
               <Avatar className="w-8 h-8">
                 <AvatarFallback className={cn("text-xs text-white", getAvatarColor(displayName))}>
@@ -313,16 +315,14 @@ export default function HomePage({ user, onJoinRoom, onSignOut }: Props) {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {rooms.map((room) => (
-              <Card key={room.id} className="group hover:shadow-lg hover:border-primary/40 hover:-translate-y-0.5 transition-all duration-300">
+              <Card key={room.id} className="h-full group hover:shadow-lg hover:border-primary/40 hover:-translate-y-0.5 transition-all duration-300">
                 <CardHeader className="pb-3 min-w-0">
                   <div className="flex items-start justify-between min-w-0">
                     <div className="flex-1 min-w-0">
                       <CardTitle className="text-base truncate">{room.name}</CardTitle>
-                      {room.description && (
-                        <CardDescription className="mt-1 text-xs line-clamp-2">
-                          {room.description}
-                        </CardDescription>
-                      )}
+                      <CardDescription className="mt-1 text-xs line-clamp-2 min-h-8">
+                        {room.description}
+                      </CardDescription>
                     </div>
                     <Badge className="ml-2 shrink-0 text-xs bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/15">
                       <Users className="w-3 h-3 mr-1" />
@@ -330,13 +330,13 @@ export default function HomePage({ user, onJoinRoom, onSignOut }: Props) {
                     </Badge>
                   </div>
                 </CardHeader>
-                <CardContent className="pb-3">
+                <CardContent className="pb-3 flex-1">
                   <div className="flex items-center gap-1 text-xs text-muted-foreground">
                     <Clock className="w-3 h-3" />
                     <span>{formatTime(room.created_at)}</span>
                   </div>
                 </CardContent>
-                <CardFooter className="pt-0 gap-2">
+                <CardFooter className="pt-0 gap-2 mt-auto">
                   <Button size="sm" className="flex-1" onClick={() => onJoinRoom(room.id)}>
                     Join Room
                     <ArrowRight className="w-3.5 h-3.5 ml-1" />

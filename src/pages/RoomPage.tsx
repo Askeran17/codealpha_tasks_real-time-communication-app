@@ -95,8 +95,20 @@ export default function RoomPage({ roomId, user, onLeave }: Props) {
       ? "grid-cols-2"
       : "grid-cols-3"
 
+  // Same column counts, scoped to the sm+ breakpoint — used when the side
+  // panel is open on mobile, where the video area becomes a small
+  // horizontally-scrolling strip instead of a grid.
+  const gridColsSm =
+    totalParticipants === 1
+      ? "sm:grid-cols-1"
+      : totalParticipants === 2
+      ? "sm:grid-cols-2"
+      : totalParticipants <= 4
+      ? "sm:grid-cols-2"
+      : "sm:grid-cols-3"
+
   return (
-    <div className="h-screen flex flex-col bg-background premium-bg overflow-hidden">
+    <div className="h-dvh flex flex-col bg-background premium-bg overflow-hidden">
       {/* Top bar */}
       <header className="flex items-center justify-between px-4 h-12 border-b border-border bg-card/85 backdrop-blur-md shrink-0">
         <div className="flex items-center gap-3">
@@ -138,10 +150,22 @@ export default function RoomPage({ roomId, user, onLeave }: Props) {
 
       {/* Main content */}
       <div className="flex flex-col flex-1 overflow-hidden">
-        <div className="flex flex-1 overflow-hidden">
+        <div className="flex flex-col sm:flex-row flex-1 overflow-hidden">
           {/* Video area */}
-          <div className={cn("flex-1 overflow-hidden", activePanel && "hidden sm:block")}>
-            <div className={cn("h-full grid gap-2 p-3 overflow-auto content-start", gridCols)}>
+          <div
+            className={cn(
+              "overflow-hidden",
+              activePanel ? "w-full aspect-video shrink-0 sm:h-auto sm:flex-1" : "flex-1"
+            )}
+          >
+            <div
+              className={cn(
+                "h-full gap-2 p-3",
+                activePanel
+                  ? cn("flex items-center overflow-x-auto sm:grid sm:overflow-auto sm:content-start", gridColsSm)
+                  : cn("grid overflow-auto content-start", gridCols)
+              )}
+            >
               {/* Local video */}
               <VideoTile
                 stream={localState.screenSharing ? screenStream : localStream}
@@ -150,6 +174,7 @@ export default function RoomPage({ roomId, user, onLeave }: Props) {
                 videoEnabled={localState.videoEnabled || localState.screenSharing}
                 screenSharing={localState.screenSharing}
                 isLocal
+                className={cn("shrink-0", activePanel && "max-w-full max-h-full")}
               />
               {/* Remote peers */}
               {peersArray.map((peer) => (
@@ -160,6 +185,7 @@ export default function RoomPage({ roomId, user, onLeave }: Props) {
                   audioEnabled={peer.audioEnabled}
                   videoEnabled={peer.videoEnabled}
                   screenSharing={peer.screenSharing}
+                  className={cn("shrink-0", activePanel && "max-w-full max-h-full")}
                 />
               ))}
             </div>
@@ -198,7 +224,7 @@ export default function RoomPage({ roomId, user, onLeave }: Props) {
                   ×
                 </Button>
               </div>
-              <div className="flex-1 overflow-hidden">
+              <div className="flex-1 flex flex-col overflow-hidden">
                 {activePanel === "chat" ? (
                   <ChatPanel roomId={roomId} user={user} />
                 ) : (
@@ -210,7 +236,7 @@ export default function RoomPage({ roomId, user, onLeave }: Props) {
         </div>
 
         {/* Controls bar */}
-        <div className="shrink-0 flex flex-wrap items-center justify-center gap-2 px-4 py-3 border-t border-border bg-card/85 backdrop-blur-md">
+        <div className="shrink-0 flex flex-wrap items-center justify-center gap-1.5 px-2 py-3 border-t border-border bg-card/85 backdrop-blur-md sm:gap-2 sm:px-4">
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
@@ -290,11 +316,11 @@ export default function RoomPage({ roomId, user, onLeave }: Props) {
               <Button
                 size="sm"
                 variant="destructive"
-                className="h-10 px-4 rounded-full"
+                className="h-10 w-10 sm:w-auto p-0 sm:px-4 rounded-full shrink-0 flex items-center justify-center"
                 onClick={onLeave}
               >
-                <PhoneOff className="w-4 h-4 mr-2" />
-                Leave
+                <PhoneOff className="w-4 h-4 sm:mr-2" />
+                <span className="hidden sm:inline">Leave</span>
               </Button>
             </TooltipTrigger>
             <TooltipContent>Leave Room</TooltipContent>

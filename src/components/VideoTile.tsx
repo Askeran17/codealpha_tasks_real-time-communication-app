@@ -1,8 +1,13 @@
-import { useCallback } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { MicOff, VideoOff, Monitor } from "lucide-react"
 import { cn, getAvatarColor } from "@/lib/utils"
+
+// Below this average frequency-bin level (0-255), the mic is treated as
+// background noise rather than speech, so the ring doesn't flicker on
+// silence/room hiss.
+const SPEAKING_THRESHOLD = 12
 
 type Props = {
   stream: MediaStream | null
@@ -37,6 +42,44 @@ export default function VideoTile({
     [stream]
   )
 
+  const [speaking, setSpeaking] = useState(false)
+  const wasSpeakingRef = useRef(false)
+
+  useEffect(() => {
+    const audioTrack = stream?.getAudioTracks()[0]
+    if (!audioTrack || !audioEnabled) {
+      setSpeaking(false)
+      return
+    }
+
+    const audioContext = new AudioContext()
+    const source = audioContext.createMediaStreamSource(new MediaStream([audioTrack]))
+    const analyser = audioContext.createAnalyser()
+    analyser.fftSize = 512
+    analyser.smoothingTimeConstant = 0.6
+    source.connect(analyser)
+    const data = new Uint8Array(analyser.frequencyBinCount)
+
+    let rafId: number
+    const tick = () => {
+      analyser.getByteFrequencyData(data)
+      const avg = data.reduce((sum, v) => sum + v, 0) / data.length
+      const isSpeaking = avg > SPEAKING_THRESHOLD
+      if (isSpeaking !== wasSpeakingRef.current) {
+        wasSpeakingRef.current = isSpeaking
+        setSpeaking(isSpeaking)
+      }
+      rafId = requestAnimationFrame(tick)
+    }
+    tick()
+
+    return () => {
+      cancelAnimationFrame(rafId)
+      source.disconnect()
+      audioContext.close()
+    }
+  }, [stream, audioEnabled])
+
   const initials = displayName
     .split(" ")
     .map((n) => n[0])
@@ -47,7 +90,8 @@ export default function VideoTile({
   return (
     <div
       className={cn(
-        "relative rounded-xl overflow-hidden bg-muted flex items-center justify-center aspect-video",
+        "relative rounded-xl overflow-hidden bg-muted flex items-center justify-center aspect-video transition-shadow duration-150",
+        speaking && "ring-2 ring-emerald-500 ring-offset-2 ring-offset-background",
         className
       )}
     >
