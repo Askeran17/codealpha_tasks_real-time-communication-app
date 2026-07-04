@@ -16,7 +16,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { toast } from "sonner"
-import { Video, Plus, LogOut, Users, Clock, Trash2, ArrowRight, Sun, Moon, Settings, Menu } from "lucide-react"
+import { Video, Plus, LogOut, Users, Clock, Trash2, ArrowRight, Sun, Moon, Settings, Menu, Link2 } from "lucide-react"
 import { useTheme } from "@/components/theme-provider"
 import SettingsDialog from "@/components/SettingsDialog"
 import { cn, getAvatarColor } from "@/lib/utils"
@@ -27,6 +27,14 @@ type Props = {
   onSignOut: () => void
 }
 
+// Accepts either a raw room ID or a full invite link
+// (e.g. https://host/room/<id>) and returns just the ID.
+function extractRoomId(input: string): string {
+  const trimmed = input.trim()
+  const match = trimmed.match(/\/room\/([^/?#]+)/)
+  return match ? match[1] : trimmed
+}
+
 export default function HomePage({ user, onJoinRoom, onSignOut }: Props) {
   const [rooms, setRooms] = useState<Room[]>([])
   const [loading, setLoading] = useState(true)
@@ -35,6 +43,8 @@ export default function HomePage({ user, onJoinRoom, onSignOut }: Props) {
   const [newRoomName, setNewRoomName] = useState("")
   const [newRoomDesc, setNewRoomDesc] = useState("")
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const [joinInput, setJoinInput] = useState("")
+  const [joining, setJoining] = useState(false)
   const { theme, setTheme } = useTheme()
 
   const displayName = user.user_metadata?.display_name || user.username || "User"
@@ -73,6 +83,22 @@ export default function HomePage({ user, onJoinRoom, onSignOut }: Props) {
       toast.error("Failed to create room")
     } finally {
       setCreating(false)
+    }
+  }
+
+  const joinByLink = async (e: React.FormEvent) => {
+    e.preventDefault()
+    const roomId = extractRoomId(joinInput)
+    if (!roomId) return
+    setJoining(true)
+    try {
+      await api.getRoom(roomId)
+      setJoinInput("")
+      onJoinRoom(roomId)
+    } catch {
+      toast.error("Room not found — check the link or ID")
+    } finally {
+      setJoining(false)
     }
   }
 
@@ -192,10 +218,10 @@ export default function HomePage({ user, onJoinRoom, onSignOut }: Props) {
 
       {/* Main */}
       <main className="max-w-5xl mx-auto px-6 py-10">
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex items-center justify-between mb-6 flex-wrap gap-4">
           <div>
             <h1 className="text-3xl font-extrabold tracking-tight">Meeting Rooms</h1>
-            <p className="text-muted-foreground mt-1">Join an existing room or create a new one</p>
+            <p className="text-muted-foreground mt-1">Your rooms — invite others by sharing a room link or ID</p>
           </div>
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <DialogTrigger asChild>
@@ -244,6 +270,18 @@ export default function HomePage({ user, onJoinRoom, onSignOut }: Props) {
           </Dialog>
         </div>
 
+        <form onSubmit={joinByLink} className="flex items-center gap-2 mb-8 max-w-md">
+          <Input
+            placeholder="Paste an invite link or room ID"
+            value={joinInput}
+            onChange={(e) => setJoinInput(e.target.value)}
+          />
+          <Button type="submit" variant="outline" disabled={joining || !joinInput.trim()}>
+            <Link2 className="w-4 h-4 mr-2" />
+            {joining ? "Joining..." : "Join by link"}
+          </Button>
+        </form>
+
         {loading ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {[1, 2, 3].map((i) => (
@@ -265,7 +303,7 @@ export default function HomePage({ user, onJoinRoom, onSignOut }: Props) {
             </div>
             <h2 className="text-xl font-semibold mb-2">No rooms yet</h2>
             <p className="text-muted-foreground mb-6 max-w-sm">
-              Create your first meeting room to get started with video conferencing
+              Create your first meeting room, or paste an invite link/ID above to join one a teammate shared with you
             </p>
             <Button onClick={() => setDialogOpen(true)}>
               <Plus className="w-4 h-4 mr-2" />

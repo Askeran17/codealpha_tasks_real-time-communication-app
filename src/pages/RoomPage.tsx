@@ -1,5 +1,6 @@
-import { useState } from "react"
-import type { AuthUser } from "@/lib/api"
+import { useEffect, useState } from "react"
+import { api, type AuthUser } from "@/lib/api"
+import { toast } from "sonner"
 import { useWebRTC } from "@/hooks/use-webrtc"
 import VideoTile from "@/components/VideoTile"
 import ChatPanel from "@/components/ChatPanel"
@@ -20,6 +21,7 @@ import {
   PhoneOff,
   Users,
   Shield,
+  Link2,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -48,6 +50,22 @@ export default function RoomPage({ roomId, user, onLeave }: Props) {
   const peersArray = Array.from(peers.values())
   const totalParticipants = 1 + peersArray.length
 
+  // Rooms are now reachable by pasting/opening a shared link, so a stale
+  // or mistyped ID needs a clean bounce back home instead of a silent
+  // WebRTC/chat failure inside a room that doesn't exist.
+  useEffect(() => {
+    let cancelled = false
+    api.getRoom(roomId).catch(() => {
+      if (!cancelled) {
+        toast.error("Room not found — it may have been deleted")
+        onLeave()
+      }
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [roomId, onLeave])
+
   const togglePanel = (panel: Panel) => {
     setActivePanel((prev) => (prev === panel ? null : panel))
   }
@@ -55,6 +73,16 @@ export default function RoomPage({ roomId, user, onLeave }: Props) {
   const handleScreenShare = () => {
     if (localState.screenSharing) stopScreenShare()
     else startScreenShare()
+  }
+
+  const handleCopyInviteLink = async () => {
+    const inviteUrl = `${window.location.origin}/room/${roomId}`
+    try {
+      await navigator.clipboard.writeText(inviteUrl)
+      toast.success("Invite link copied!")
+    } catch {
+      toast.error("Could not copy link")
+    }
   }
 
   // Determine video grid columns
@@ -81,6 +109,21 @@ export default function RoomPage({ roomId, user, onLeave }: Props) {
           </div>
         </div>
         <div className="flex items-center gap-2">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-7 gap-1.5 px-2.5 text-xs"
+                onClick={handleCopyInviteLink}
+              >
+                <Link2 className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Invite</span>
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Copy invite link</TooltipContent>
+          </Tooltip>
+          <Separator orientation="vertical" className="h-4" />
           <div className="flex items-center gap-1 text-xs text-muted-foreground">
             <Shield className="w-3.5 h-3.5 text-green-500" />
             <span className="hidden sm:block">Encrypted</span>

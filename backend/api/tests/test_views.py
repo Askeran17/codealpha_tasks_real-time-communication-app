@@ -198,6 +198,19 @@ class RoomViewTests(TestCase):
         self.assertIn('Active Room', names)
         self.assertNotIn('Archived Room', names)
 
+    def test_list_rooms_excludes_other_users_rooms(self):
+        # Rooms aren't a shared public directory (like Zoom/Meet) — the
+        # list endpoint should only ever return the caller's own rooms.
+        Room.objects.create(name='My Room', created_by=self.user)
+        Room.objects.create(name='Someone Elses Room', created_by=self.other_user)
+
+        self.authenticate(self.token)
+        response = self.client.get(self.room_list_url)
+
+        names = [room['name'] for room in response.data]
+        self.assertIn('My Room', names)
+        self.assertNotIn('Someone Elses Room', names)
+
     def test_retrieve_room_detail(self):
         room = Room.objects.create(name='Detail Room', created_by=self.user)
 
@@ -207,21 +220,38 @@ class RoomViewTests(TestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data['id'], str(room.id))
 
+    def test_any_authenticated_user_can_retrieve_room_by_id(self):
+        # This is what makes "join by invite link/ID" possible: retrieval
+        # isn't scoped to the owner, only creation/listing/deletion are.
+        room = Room.objects.create(name='Shared Room', created_by=self.user)
+
+        self.authenticate(self.other_token)
+        response = self.client.get(reverse('room-detail', args=[room.id]))
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
     def test_retrieve_missing_room_returns_404(self):
         self.authenticate(self.token)
         response = self.client.get(reverse('room-detail', args=['00000000-0000-0000-0000-000000000000']))
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
-    def test_any_authenticated_user_can_delete_room(self):
-        # Documents current behavior: RoomDetailView only checks
-        # IsAuthenticated, it does not restrict deletion to the room owner.
+    def test_owner_can_delete_room(self):
         room = Room.objects.create(name='Deletable Room', created_by=self.user)
 
-        self.authenticate(self.other_token)
+        self.authenticate(self.token)
         response = self.client.delete(reverse('room-detail', args=[room.id]))
 
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
         self.assertFalse(Room.objects.filter(id=room.id).exists())
+
+    def test_non_owner_cannot_delete_room(self):
+        room = Room.objects.create(name='Protected Room', created_by=self.user)
+
+        self.authenticate(self.other_token)
+        response = self.client.delete(reverse('room-detail', args=[room.id]))
+
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertTrue(Room.objects.filter(id=room.id).exists())
 
 
 class RoomMessagesViewTests(TestCase):

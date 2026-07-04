@@ -2,6 +2,7 @@ from rest_framework import status, generics
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
+from rest_framework.exceptions import PermissionDenied
 from django.contrib.auth import authenticate
 from django.contrib.auth.models import User
 from django.db.models import Q
@@ -143,20 +144,32 @@ class ChangePasswordView(APIView):
 
 
 class RoomListCreateView(generics.ListCreateAPIView):
+    """Lists only the requesting user's own rooms — like Zoom/Meet, rooms
+    aren't a shared public directory. Joining someone else's room happens
+    by ID/invite link instead (see RoomDetailView, which any authenticated
+    user may still GET)."""
     serializer_class = RoomSerializer
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        return Room.objects.filter(is_active=True).order_date_created_at_desc() if hasattr(Room.objects, 'order_date_created_at_desc') else Room.objects.filter(is_active=True).order_by('-created_at')
+        return Room.objects.filter(is_active=True, created_by=self.request.user).order_by('-created_at')
 
     def perform_create(self, serializer):
         serializer.save(created_by=self.request.user)
 
 
 class RoomDetailView(generics.RetrieveDestroyAPIView):
+    # Retrieval is intentionally open to any authenticated user — that's
+    # what makes joining via a shared room ID/link possible. Deletion is
+    # restricted to the room's owner in perform_destroy below.
     queryset = Room.objects.filter(is_active=True)
     serializer_class = RoomSerializer
     permission_classes = [IsAuthenticated]
+
+    def perform_destroy(self, instance):
+        if instance.created_by_id != self.request.user.id:
+            raise PermissionDenied("Only the room owner can delete this room.")
+        instance.delete()
 
 
 class RoomMessagesListView(generics.ListAPIView):
