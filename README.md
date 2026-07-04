@@ -4,6 +4,8 @@ Real-time app is a secure, real-time video calling and collaboration platform bu
 
 **🔗 Live Demo:** [codealpha-tasks-real-time-communication.onrender.com](https://codealpha-tasks-real-time-communication.onrender.com/)
 
+> [!NOTE]
+> The live application is hosted on Render's **free tier**. If the site has not been accessed recently, the server will go to sleep. The initial page load may take up to **50 seconds** (cold start) while the container spins back up.
 ---
 
 ## 🚀 Key Features
