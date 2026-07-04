@@ -126,8 +126,8 @@ export default function HomePage({ user, onJoinRoom, onSignOut }: Props) {
       <header className="border-b border-border bg-card/85 backdrop-blur-md sticky top-0 z-10">
         <div className="max-w-5xl mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-gradient-to-br from-stone-800 to-orange-800 rounded-lg flex items-center justify-center shadow-sm">
-              <Video className="w-4 h-4 text-primary-foreground" />
+            <div className="w-8 h-8 bg-gradient-to-br from-ember to-flare rounded-lg flex items-center justify-center shadow-sm shadow-flare/25">
+              <Video className="w-4 h-4 text-white" />
             </div>
             <span className="text-lg font-bold">Real-time app</span>
           </div>

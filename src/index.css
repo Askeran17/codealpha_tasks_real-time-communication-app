@@ -1,11 +1,14 @@
-@import url("https://fonts.googleapis.com/css2?family=Sofia+Sans:ital,wght@0,1..1000;1,1..1000&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Manrope:wght@400;500;600;700&display=swap");
 @import "tailwindcss";
 @import "tw-animate-css";
 
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
-  --font-sans: "Sofia Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Manrope", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Space Grotesk", "Manrope", ui-sans-serif, system-ui, sans-serif;
+  --color-ember: var(--ember);
+  --color-flare: var(--flare);
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
@@ -49,7 +52,9 @@
   THEME CONFIGURATION
   ============================================================
 
-  Theme: Mastercard-inspired (warm cream / ink black / signal orange)
+  Theme: warm cream / ink black, with an ember-to-flare (orange-to-red)
+  gradient reserved for primary calls to action. Display type is Space
+  Grotesk, body/UI is Manrope.
   Mode:  light (:root) / dark (.dark)
 
   To switch to dark mode by default, change the ThemeProvider
@@ -74,6 +79,8 @@
   --muted-foreground: #696969;
   --accent: #fbe7da;
   --accent-foreground: #cf4500;
+  --ember: #ff6a2e;
+  --flare: #ff2e63;
   --destructive: #c0392b;
   --destructive-foreground: #f3f0ee;
   --border: #e5ded5;
@@ -109,6 +116,8 @@
   --muted-foreground: #a8a29a;
   --accent: #3a2a1e;
   --accent-foreground: #f37338;
+  --ember: #ff7a3d;
+  --flare: #ff3d72;
   --destructive: #e5604d;
   --destructive-foreground: #141413;
   --border: #2e2b27;
@@ -135,14 +144,40 @@
 
 .premium-bg {
   background-image:
-    radial-gradient(at 0% 0%, rgb(207 69 0 / 6%) 0px, transparent 50%),
-    radial-gradient(at 100% 100%, rgb(20 20 19 / 5%) 0px, transparent 50%);
+    radial-gradient(at 0% 0%, rgb(255 106 46 / 7%) 0px, transparent 50%),
+    radial-gradient(at 100% 100%, rgb(255 46 99 / 6%) 0px, transparent 50%);
 }
 
 .dark .premium-bg {
   background-image:
-    radial-gradient(at 0% 0%, rgb(243 115 56 / 10%) 0px, transparent 50%),
-    radial-gradient(at 100% 100%, rgb(56 96 190 / 8%) 0px, transparent 50%);
+    radial-gradient(at 0% 0%, rgb(255 122 61 / 12%) 0px, transparent 50%),
+    radial-gradient(at 100% 100%, rgb(255 61 114 / 10%) 0px, transparent 50%);
+}
+
+/* Gradient text clip for the one accented word/phrase per headline. */
+.text-flame {
+  background: linear-gradient(100deg, var(--ember), var(--flare) 65%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Soft floating glow orbs used behind hero-style sections (AuthPage). Kept
+   out of RoomPage/HomePage's working views so they don't distract during
+   actual use. */
+.glow-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(60px);
+  pointer-events: none;
+  animation: orb-drift 24s ease-in-out infinite;
+}
+@keyframes orb-drift {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(-24px, 30px) scale(1.08); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .glow-orb { animation: none; }
 }
 
 @layer base {
@@ -152,9 +187,9 @@
   body {
     @apply bg-background text-foreground;
     font-family: var(--font-sans);
-    font-weight: 450;
   }
   h1, h2, h3 {
+    font-family: var(--font-display);
     letter-spacing: -0.02em;
   }
 }

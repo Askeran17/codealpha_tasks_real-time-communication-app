@@ -52,32 +52,40 @@ export default function AuthPage() {
   return (
     <div className="min-h-screen bg-background flex premium-bg">
       {/* Left panel */}
-      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-stone-900 via-neutral-900 to-orange-900 flex-col justify-center px-16 py-12">
-        <div className="mb-8">
+      <div className="hidden lg:flex relative lg:w-1/2 bg-gradient-to-br from-stone-950 via-neutral-900 to-stone-900 flex-col justify-center px-16 py-12 overflow-hidden">
+        <div className="glow-orb w-[420px] h-[420px] -top-32 -right-24 bg-[radial-gradient(circle,var(--ember),transparent_70%)] opacity-30" />
+        <div className="glow-orb w-[320px] h-[320px] bottom-10 -left-28 bg-[radial-gradient(circle,var(--flare),transparent_70%)] opacity-20" style={{ animationDelay: "-8s" }} />
+
+        <div className="relative mb-8">
           <div className="flex items-center gap-3 mb-6">
-            <div className="w-10 h-10 bg-primary-foreground rounded-xl flex items-center justify-center">
-              <Video className="w-6 h-6 text-primary" />
+            <div className="w-10 h-10 bg-gradient-to-br from-ember to-flare rounded-xl flex items-center justify-center shadow-lg shadow-flare/30">
+              <Video className="w-5 h-5 text-white" />
             </div>
-            <span className="text-2xl font-bold text-primary-foreground">Real-time app</span>
+            <span className="text-2xl font-bold text-white">Real-time app</span>
           </div>
-          <h1 className="text-4xl font-extrabold tracking-tight text-primary-foreground mb-4">
-            Connect, collaborate, create.
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-ember mb-4">
+            Video, built for how teams actually work
+          </p>
+          <h1 className="text-4xl tracking-tight text-white mb-4">
+            Connect, collaborate,<br /><span className="text-flame">create.</span>
           </h1>
-          <p className="text-lg text-primary-foreground/70 leading-relaxed">
+          <p className="text-lg text-white/70 leading-relaxed max-w-md">
             End-to-end encrypted video conferencing with screen sharing, real-time whiteboard, and seamless file sharing.
           </p>
         </div>
-        <div className="grid grid-cols-2 gap-4">
+        <div className="relative grid grid-cols-2 gap-4">
           {[
             { icon: Video, label: "HD Video Calls", desc: "Multi-user WebRTC", color: "text-sky-300" },
             { icon: Monitor, label: "Screen Share", desc: "Share any window", color: "text-amber-300" },
             { icon: Users, label: "Collaboration", desc: "Live whiteboard", color: "text-rose-300" },
             { icon: Shield, label: "Encrypted", desc: "DTLS/SRTP/AES-GCM secured", color: "text-emerald-300" },
           ].map(({ icon: Icon, label, desc, color }) => (
-            <div key={label} className="bg-primary-foreground/10 rounded-xl p-4">
-              <Icon className={cn("w-5 h-5 mb-2", color)} />
-              <div className="text-sm font-semibold text-primary-foreground">{label}</div>
-              <div className="text-xs text-primary-foreground/60">{desc}</div>
+            <div key={label} className="bg-white/[0.06] border border-white/10 backdrop-blur-sm rounded-xl p-4">
+              <div className={cn("w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center mb-2.5")}>
+                <Icon className={cn("w-4 h-4", color)} />
+              </div>
+              <div className="text-sm font-semibold text-white">{label}</div>
+              <div className="text-xs text-white/60">{desc}</div>
             </div>
           ))}
         </div>
@@ -87,8 +95,8 @@ export default function AuthPage() {
       <div className="flex-1 flex items-center justify-center px-6 py-12">
         <div className="w-full max-w-md">
           <div className="flex items-center gap-2 mb-8 lg:hidden">
-            <div className="w-8 h-8 bg-gradient-to-br from-stone-900 via-neutral-900 to-orange-900 rounded-lg flex items-center justify-center">
-              <Video className="w-4 h-4 text-primary-foreground" />
+            <div className="w-8 h-8 bg-gradient-to-br from-ember to-flare rounded-lg flex items-center justify-center shadow-md shadow-flare/25">
+              <Video className="w-4 h-4 text-white" />
             </div>
             <span className="text-xl font-bold">Real-time app</span>
           </div>
