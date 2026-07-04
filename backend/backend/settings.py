@@ -1,26 +1,42 @@
 import os
 from pathlib import Path
 
+from dotenv import load_dotenv
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+# Load variables from the project-root .env for local development. Render
+# sets real environment variables directly, and load_dotenv() never
+# overrides a variable that's already set, so this is a no-op in production.
+load_dotenv(BASE_DIR.parent / '.env')
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
 
-SECRET_KEY = os.environ.get(
-    'SECRET_KEY',
-    'django-insecure-local-dev-only-do-not-use-in-production',
-)
+SECRET_KEY = os.environ.get('SECRET_KEY')
 
-DEBUG = False
+DEBUG = os.environ.get('DEBUG', 'False') == 'True'
 
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = os.environ.get(
+    'ALLOWED_HOSTS',
+    'localhost,127.0.0.1,codealpha-tasks-real-time-communication.onrender.com',
+).split(',')
 
 # Render terminates TLS at its proxy and forwards requests over plain HTTP,
 # marking the original scheme with this header. Without telling Django to
 # trust it, request.build_absolute_uri() (used for file URLs) generates
 # http:// links even though the site is served over https://.
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
+# Only redirect/enforce secure cookies in production — locally the dev
+# server has no TLS, so these would otherwise break http://localhost access.
+SECURE_SSL_REDIRECT = not DEBUG
+SESSION_COOKIE_SECURE = not DEBUG
+CSRF_COOKIE_SECURE = not DEBUG
+SECURE_HSTS_SECONDS = 31536000 if not DEBUG else 0
+SECURE_HSTS_INCLUDE_SUBDOMAINS = not DEBUG
+SECURE_HSTS_PRELOAD = not DEBUG
 
 # Application definition
 INSTALLED_APPS = [
@@ -145,7 +161,12 @@ REST_FRAMEWORK = {
 }
 
 # CORS settings
-CORS_ALLOW_ALL_ORIGINS = True  # For easy local development with Vite dev servers
+# CORS_ALLOW_CREDENTIALS=True combined with "allow all origins" would let any
+# website make credentialed requests to this API, so origins are explicit.
+CORS_ALLOWED_ORIGINS = os.environ.get(
+    'CORS_ALLOWED_ORIGINS',
+    'http://localhost:5173,http://127.0.0.1:5173,https://codealpha-tasks-real-time-communication.onrender.com',
+).split(',')
 CORS_ALLOW_CREDENTIALS = True
 
 # Channels Layer configuration (in-memory, no Redis required)
