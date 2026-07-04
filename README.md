@@ -2,6 +2,8 @@
 
 Real-time app is a secure, real-time video calling and collaboration platform built with React, Django Channels (WebSockets), and WebRTC. It supports multi-user video calling, screen sharing, a shared real-time whiteboard, and end-to-end encrypted (E2EE) messaging and file sharing.
 
+**🔗 Live Demo:** [codealpha-tasks-real-time-communication.onrender.com](https://codealpha-tasks-real-time-communication.onrender.com/)
+
 ---
 
 ## 🚀 Key Features
