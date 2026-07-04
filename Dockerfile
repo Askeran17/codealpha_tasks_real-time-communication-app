@@ -49,5 +49,7 @@ RUN python manage.py collectstatic --noinput
 # Expose port (Render will override $PORT env var)
 EXPOSE 8000
 
-# Start Daphne ASGI server to handle both HTTP and WebSocket traffic
-CMD daphne -b 0.0.0.0 -p $PORT backend.asgi:application
+# Apply database migrations (DATABASE_URL is only available at container
+# runtime, not at image build time) then start Daphne ASGI server to
+# handle both HTTP and WebSocket traffic
+CMD python manage.py migrate --noinput && daphne -b 0.0.0.0 -p $PORT backend.asgi:application
