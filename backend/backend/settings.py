@@ -13,6 +13,12 @@ DEBUG = True
 
 ALLOWED_HOSTS = ['*']
 
+# Render terminates TLS at its proxy and forwards requests over plain HTTP,
+# marking the original scheme with this header. Without telling Django to
+# trust it, request.build_absolute_uri() (used for file URLs) generates
+# http:// links even though the site is served over https://.
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
 # Application definition
 INSTALLED_APPS = [
     'daphne',  # Daphne must be before django.contrib.staticfiles
