@@ -1,6 +1,15 @@
 # --- Stage 1: Build React Frontend ---
 FROM node:22-alpine AS frontend-builder
 WORKDIR /app
+
+# Vite inlines these into the JS bundle at build time, so they must be
+# passed in as build args here — setting them as runtime env vars on the
+# Render service has no effect on the already-built bundle.
+ARG VITE_API_URL=/api
+ARG VITE_WS_URL
+ENV VITE_API_URL=$VITE_API_URL
+ENV VITE_WS_URL=$VITE_WS_URL
+
 COPY package*.json ./
 RUN npm install
 COPY . .
