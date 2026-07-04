@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react"
+import { useCallback } from "react"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { MicOff, VideoOff, Monitor } from "lucide-react"
@@ -23,13 +23,19 @@ export default function VideoTile({
   isLocal = false,
   className,
 }: Props) {
-  const videoRef = useRef<HTMLVideoElement>(null)
-
-  useEffect(() => {
-    if (videoRef.current && stream) {
-      videoRef.current.srcObject = stream
-    }
-  }, [stream])
+  // A callback ref (not useRef + useEffect) because the <video> element
+  // unmounts/remounts whenever videoEnabled toggles (it's swapped for the
+  // Avatar placeholder below). useEffect wouldn't rerun on that remount
+  // since `stream` itself hasn't changed, leaving the new element's
+  // srcObject unset — this fires on every mount instead.
+  const videoRef = useCallback(
+    (node: HTMLVideoElement | null) => {
+      if (node && stream) {
+        node.srcObject = stream
+      }
+    },
+    [stream]
+  )
 
   const initials = displayName
     .split(" ")

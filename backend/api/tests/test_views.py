@@ -72,6 +72,86 @@ class AuthViewTests(TestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data['user']['username'], 'testuser')
 
+    def test_patch_me_updates_display_name_and_email(self):
+        reg_response = self.client.post(self.register_url, self.user_data, format='json')
+        token = reg_response.data['token']
+
+        self.client.credentials(HTTP_AUTHORIZATION='Token ' + token)
+        response = self.client.patch(self.me_url, {
+            'display_name': 'New Name',
+            'email': 'new@example.com',
+        }, format='json')
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['user']['first_name'], 'New Name')
+        self.assertEqual(response.data['user']['email'], 'new@example.com')
+        # Registration uses the email as the username, so it must stay in
+        # sync or the user could no longer sign in with their new email.
+        self.assertEqual(response.data['user']['username'], 'new@example.com')
+
+    def test_patch_me_rejects_email_already_in_use(self):
+        self.client.post(self.register_url, self.user_data, format='json')
+        other_reg = self.client.post(self.register_url, {
+            'username': 'otheruser',
+            'password': 'password123',
+            'email': 'other@example.com',
+            'display_name': 'Other User',
+        }, format='json')
+
+        self.client.credentials(HTTP_AUTHORIZATION='Token ' + other_reg.data['token'])
+        response = self.client.patch(self.me_url, {'email': 'test@example.com'}, format='json')
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_patch_me_requires_authentication(self):
+        response = self.client.patch(self.me_url, {'display_name': 'New Name'}, format='json')
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+
+class ChangePasswordViewTests(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+        self.change_password_url = reverse('change-password')
+        self.user = User.objects.create_user(username='pwuser', password='oldpassword123')
+        self.token = Token.objects.create(user=self.user)
+        self.client.credentials(HTTP_AUTHORIZATION='Token ' + self.token.key)
+
+    def test_change_password_success(self):
+        response = self.client.post(self.change_password_url, {
+            'current_password': 'oldpassword123',
+            'new_password': 'newpassword456',
+        }, format='json')
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.user.refresh_from_db()
+        self.assertTrue(self.user.check_password('newpassword456'))
+
+    def test_change_password_rejects_wrong_current_password(self):
+        response = self.client.post(self.change_password_url, {
+            'current_password': 'wrongpassword',
+            'new_password': 'newpassword456',
+        }, format='json')
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.user.refresh_from_db()
+        self.assertTrue(self.user.check_password('oldpassword123'))
+
+    def test_change_password_rejects_short_new_password(self):
+        response = self.client.post(self.change_password_url, {
+            'current_password': 'oldpassword123',
+            'new_password': 'abc',
+        }, format='json')
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_change_password_requires_authentication(self):
+        self.client.credentials()
+        response = self.client.post(self.change_password_url, {
+            'current_password': 'oldpassword123',
+            'new_password': 'newpassword456',
+        }, format='json')
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
 
 class RoomViewTests(TestCase):
     def setUp(self):

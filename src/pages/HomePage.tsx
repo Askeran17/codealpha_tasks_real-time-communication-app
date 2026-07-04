@@ -11,6 +11,7 @@ import { Separator } from "@/components/ui/separator"
 import { toast } from "sonner"
 import { Video, Plus, LogOut, Users, Clock, Trash2, ArrowRight, Sun, Moon } from "lucide-react"
 import { useTheme } from "@/components/theme-provider"
+import SettingsDialog from "@/components/SettingsDialog"
 
 type Props = {
   user: AuthUser
@@ -107,6 +108,7 @@ export default function HomePage({ user, onJoinRoom, onSignOut }: Props) {
               <span className="sr-only">Toggle theme</span>
             </Button>
             <Separator orientation="vertical" className="h-5" />
+            <SettingsDialog user={user} />
             <div className="flex items-center gap-2">
               <Avatar className="w-8 h-8">
                 <AvatarFallback className="text-xs bg-primary text-primary-foreground">

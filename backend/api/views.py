@@ -4,6 +4,7 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from django.contrib.auth import authenticate
 from django.contrib.auth.models import User
+from django.db.models import Q
 from rest_framework.authtoken.models import Token
 from .models import Room, RoomParticipant, Message, SharedFile
 from .serializers import UserSerializer, RoomSerializer, MessageSerializer, SharedFileSerializer
@@ -83,6 +84,62 @@ class UserMeView(APIView):
         return Response({
             'user': UserSerializer(request.user).data
         })
+
+    def patch(self, request):
+        display_name = request.data.get('display_name')
+        email = request.data.get('email')
+
+        if display_name is not None:
+            request.user.first_name = display_name
+
+        # Registration uses the email as the username (see RegisterView), so
+        # they're kept in sync here too, otherwise a changed email would no
+        # longer match the username used to sign in.
+        if email is not None and email != request.user.email:
+            if User.objects.exclude(pk=request.user.pk).filter(Q(username=email) | Q(email=email)).exists():
+                return Response(
+                    {'error': 'Email already in use'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            request.user.email = email
+            request.user.username = email
+
+        request.user.save()
+
+        return Response({
+            'user': UserSerializer(request.user).data
+        })
+
+
+class ChangePasswordView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        current_password = request.data.get('current_password')
+        new_password = request.data.get('new_password')
+
+        if not current_password or not new_password:
+            return Response(
+                {'error': 'Current and new password are required'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        if not request.user.check_password(current_password):
+            return Response(
+                {'error': 'Current password is incorrect'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        if len(new_password) < 6:
+            return Response(
+                {'error': 'New password must be at least 6 characters'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        request.user.set_password(new_password)
+        request.user.save()
+
+        return Response({'success': True})
 
 
 class RoomListCreateView(generics.ListCreateAPIView):

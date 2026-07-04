@@ -7,7 +7,20 @@ function jsonResponse(body: unknown, init: { ok?: boolean; status?: number } = {
     status: init.status ?? 200,
     statusText: "",
     json: async () => body,
+    text: async () => JSON.stringify(body),
   } as Response
+}
+
+function noContentResponse() {
+  return {
+    ok: true,
+    status: 204,
+    statusText: "",
+    json: async () => {
+      throw new Error("no body to parse")
+    },
+    text: async () => "",
+  } as unknown as Response
 }
 
 describe("token storage", () => {
@@ -98,6 +111,13 @@ describe("api", () => {
     )
 
     await expect(api.getRoom("missing-room")).rejects.toThrow("Room not found")
+  })
+
+  it("resolves deleteRoom without parsing a 204 No Content body", async () => {
+    setToken("some-token")
+    vi.mocked(fetch).mockResolvedValueOnce(noContentResponse())
+
+    await expect(api.deleteRoom("room-1")).resolves.toBeUndefined()
   })
 
   it("maps Django room message fields into the frontend Message shape", async () => {

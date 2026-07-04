@@ -89,7 +89,13 @@ async function apiRequest<T>(endpoint: string, options: RequestInit = {}): Promi
     throw new Error(errorData.error || response.statusText || "Request failed")
   }
 
-  return response.json()
+  // DELETE (and other) endpoints can return 204 No Content with an empty
+  // body, which response.json() would fail to parse.
+  if (response.status === 204) {
+    return undefined as T
+  }
+  const text = await response.text()
+  return text ? JSON.parse(text) : (undefined as T)
 }
 
 export const api = {
@@ -114,6 +120,21 @@ export const api = {
 
   async logout(): Promise<void> {
     setToken(null)
+  },
+
+  async updateProfile(displayName: string, email: string): Promise<AuthUser> {
+    const data = await apiRequest<{ user: DjangoUser }>("auth/me/", {
+      method: "PATCH",
+      body: JSON.stringify({ display_name: displayName, email }),
+    })
+    return mapDjangoUser(data.user)
+  },
+
+  async changePassword(currentPassword: string, newPassword: string): Promise<void> {
+    await apiRequest<void>("auth/change-password/", {
+      method: "POST",
+      body: JSON.stringify({ current_password: currentPassword, new_password: newPassword }),
+    })
   },
 
   async getMe(): Promise<AuthUser | null> {
