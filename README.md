@@ -18,7 +18,8 @@ Real-time app is a secure, real-time video calling and collaboration platform bu
 ## 📸 Demo & Screenshots
 
 ### Application Walkthrough (WebP Demo)
-![Real-time App Demo](https://raw.githubusercontent.com/Askeran17/codealpha_tasks_real-time-communication-app/main/public/demo.webp?v=2)
+![Real-time App Demo](public/demo-walkthrough.webp)
+
 
 ### Screenshots
 
