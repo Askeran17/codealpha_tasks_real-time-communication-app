@@ -1,9 +1,11 @@
+@import url("https://fonts.googleapis.com/css2?family=Sofia+Sans:ital,wght@0,1..1000;1,1..1000&display=swap");
 @import "tailwindcss";
 @import "tw-animate-css";
 
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
+  --font-sans: "Sofia Sans", ui-sans-serif, system-ui, sans-serif;
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
@@ -47,115 +49,100 @@
   THEME CONFIGURATION
   ============================================================
 
-  Theme: neutral (default)
+  Theme: Mastercard-inspired (warm cream / ink black / signal orange)
   Mode:  light (:root) / dark (.dark)
 
   To switch to dark mode by default, change the ThemeProvider
   defaultTheme prop in src/main.tsx:
     <ThemeProvider defaultTheme="dark">
-
-  To change theme colors, replace the OKLCH values below.
-  Visit https://ui.shadcn.com/themes to generate theme CSS.
-
-  To change the base color palette (e.g. stone, zinc, gray),
-  re-initialize with the shadcn CLI:
-    npx shadcn@latest init -t vite --preset nova -y -f
-    npx shadcn@latest init -t vite --preset vega -y -f
-
-  Available presets: nova, vega, maia, lyra, mira
-  Available base colors: neutral, stone, zinc, gray, mauve,
-                         olive, mist, taupe
-
-  CLI non-interactive theme change:
-    npx shadcn@latest init -t vite -d -y -f
   ============================================================
 */
 
 :root {
-  --radius: 0.625rem;
-  --background: oklch(0.985 0.006 265);
-  --foreground: oklch(0.18 0.02 265);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.18 0.02 265);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.18 0.02 265);
-  --primary: oklch(0.55 0.20 270);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.95 0.015 265);
-  --secondary-foreground: oklch(0.3 0.04 270);
-  --muted: oklch(0.95 0.015 265);
-  --muted-foreground: oklch(0.48 0.02 265);
-  --accent: oklch(0.93 0.03 270);
-  --accent-foreground: oklch(0.45 0.20 270);
-  --destructive: oklch(0.577 0.245 27.325);
-  --destructive-foreground: oklch(0.985 0 0);
-  --border: oklch(0.91 0.02 265);
-  --input: oklch(0.91 0.02 265);
-  --ring: oklch(0.55 0.20 270);
-  --chart-1: oklch(0.58 0.22 270);
-  --chart-2: oklch(0.65 0.16 190);
-  --chart-3: oklch(0.48 0.15 240);
-  --chart-4: oklch(0.78 0.17 80);
-  --chart-5: oklch(0.72 0.18 50);
-  --sidebar: oklch(0.985 0.006 265);
-  --sidebar-foreground: oklch(0.18 0.02 265);
-  --sidebar-primary: oklch(0.55 0.20 270);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.95 0.015 265);
-  --sidebar-accent-foreground: oklch(0.55 0.20 270);
-  --sidebar-border: oklch(0.91 0.02 265);
-  --sidebar-ring: oklch(0.55 0.20 270);
+  --radius: 1rem;
+  --background: #f3f0ee;
+  --foreground: #141413;
+  --card: #fcfbfa;
+  --card-foreground: #141413;
+  --popover: #ffffff;
+  --popover-foreground: #141413;
+  --primary: #141413;
+  --primary-foreground: #f3f0ee;
+  --secondary: #f4f4f4;
+  --secondary-foreground: #141413;
+  --muted: #f4f4f4;
+  --muted-foreground: #696969;
+  --accent: #fbe7da;
+  --accent-foreground: #cf4500;
+  --destructive: #c0392b;
+  --destructive-foreground: #f3f0ee;
+  --border: #e5ded5;
+  --input: #e5ded5;
+  --ring: #141413;
+  --chart-1: #141413;
+  --chart-2: #cf4500;
+  --chart-3: #3860be;
+  --chart-4: #9a3a0a;
+  --chart-5: #696969;
+  --sidebar: #f3f0ee;
+  --sidebar-foreground: #141413;
+  --sidebar-primary: #141413;
+  --sidebar-primary-foreground: #f3f0ee;
+  --sidebar-accent: #f4f4f4;
+  --sidebar-accent-foreground: #141413;
+  --sidebar-border: #e5ded5;
+  --sidebar-ring: #141413;
 }
 
 .dark {
-  --background: oklch(0.13 0.02 265);
-  --foreground: oklch(0.96 0.01 265);
-  --card: oklch(0.16 0.022 265);
-  --card-foreground: oklch(0.96 0.01 265);
-  --popover: oklch(0.18 0.022 265);
-  --popover-foreground: oklch(0.96 0.01 265);
-  --primary: oklch(0.68 0.18 265);
-  --primary-foreground: oklch(0.12 0.02 265);
-  --secondary: oklch(0.20 0.025 265);
-  --secondary-foreground: oklch(0.96 0.01 265);
-  --muted: oklch(0.20 0.025 265);
-  --muted-foreground: oklch(0.65 0.015 265);
-  --accent: oklch(0.24 0.04 265);
-  --accent-foreground: oklch(0.85 0.10 265);
-  --destructive: oklch(0.55 0.18 25);
-  --destructive-foreground: oklch(0.985 0 0);
-  --border: oklch(0.24 0.02 265);
-  --input: oklch(0.24 0.02 265);
-  --ring: oklch(0.68 0.18 265);
-  --chart-1: oklch(0.68 0.18 265);
-  --chart-2: oklch(0.65 0.16 190);
-  --chart-3: oklch(0.72 0.18 50);
-  --chart-4: oklch(0.60 0.22 300);
-  --chart-5: oklch(0.62 0.20 15);
-  --sidebar: oklch(0.16 0.022 265);
-  --sidebar-foreground: oklch(0.96 0.01 265);
-  --sidebar-primary: oklch(0.68 0.18 265);
-  --sidebar-primary-foreground: oklch(0.12 0.02 265);
-  --sidebar-accent: oklch(0.20 0.025 265);
-  --sidebar-accent-foreground: oklch(0.96 0.01 265);
-  --sidebar-border: oklch(0.24 0.02 265);
-  --sidebar-ring: oklch(0.68 0.18 265);
+  --background: #141413;
+  --foreground: #f3f0ee;
+  --card: #1d1b19;
+  --card-foreground: #f3f0ee;
+  --popover: #1d1b19;
+  --popover-foreground: #f3f0ee;
+  --primary: #f3f0ee;
+  --primary-foreground: #141413;
+  --secondary: #262421;
+  --secondary-foreground: #f3f0ee;
+  --muted: #262421;
+  --muted-foreground: #a8a29a;
+  --accent: #3a2a1e;
+  --accent-foreground: #f37338;
+  --destructive: #e5604d;
+  --destructive-foreground: #141413;
+  --border: #2e2b27;
+  --input: #2e2b27;
+  --ring: #f3f0ee;
+  --chart-1: #f3f0ee;
+  --chart-2: #f37338;
+  --chart-3: #6f96e8;
+  --chart-4: #d1834a;
+  --chart-5: #a8a29a;
+  --sidebar: #1d1b19;
+  --sidebar-foreground: #f3f0ee;
+  --sidebar-primary: #f3f0ee;
+  --sidebar-primary-foreground: #141413;
+  --sidebar-accent: #262421;
+  --sidebar-accent-foreground: #f3f0ee;
+  --sidebar-border: #2e2b27;
+  --sidebar-ring: #f3f0ee;
 }
 
 .premium-gradient {
-  background: linear-gradient(135deg, oklch(0.55 0.20 270) 0%, oklch(0.68 0.18 265) 100%);
+  background: linear-gradient(135deg, #141413 0%, #3a2418 100%);
 }
 
 .premium-bg {
-  background-image: 
-    radial-gradient(at 0% 0%, oklch(0.55 0.20 270 / 8%) 0px, transparent 50%),
-    radial-gradient(at 100% 100%, oklch(0.65 0.16 190 / 8%) 0px, transparent 50%);
+  background-image:
+    radial-gradient(at 0% 0%, rgb(207 69 0 / 6%) 0px, transparent 50%),
+    radial-gradient(at 100% 100%, rgb(20 20 19 / 5%) 0px, transparent 50%);
 }
 
 .dark .premium-bg {
-  background-image: 
-    radial-gradient(at 0% 0%, oklch(0.68 0.18 265 / 12%) 0px, transparent 50%),
-    radial-gradient(at 100% 100%, oklch(0.65 0.16 190 / 12%) 0px, transparent 50%);
+  background-image:
+    radial-gradient(at 0% 0%, rgb(243 115 56 / 10%) 0px, transparent 50%),
+    radial-gradient(at 100% 100%, rgb(56 96 190 / 8%) 0px, transparent 50%);
 }
 
 @layer base {
@@ -164,5 +151,10 @@
   }
   body {
     @apply bg-background text-foreground;
+    font-family: var(--font-sans);
+    font-weight: 450;
+  }
+  h1, h2, h3 {
+    letter-spacing: -0.02em;
   }
 }

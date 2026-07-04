@@ -5,17 +5,18 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
-// A fixed palette (not the theme's primary indigo) so avatars carry a
-// distinct, per-person identity color instead of all looking the same.
+// A fixed, warm-leaning palette (matching the Mastercard-inspired cream/ink/
+// signal-orange theme) so avatars carry a distinct, per-person identity
+// color instead of all looking the same.
 const AVATAR_COLORS = [
-  "bg-indigo-500",
-  "bg-emerald-500",
-  "bg-amber-500",
-  "bg-rose-500",
-  "bg-sky-500",
-  "bg-violet-500",
-  "bg-teal-500",
-  "bg-pink-500",
+  "bg-orange-700",
+  "bg-emerald-700",
+  "bg-amber-600",
+  "bg-rose-700",
+  "bg-stone-700",
+  "bg-teal-700",
+  "bg-red-700",
+  "bg-yellow-700",
 ]
 
 export function getAvatarColor(seed: string): string {

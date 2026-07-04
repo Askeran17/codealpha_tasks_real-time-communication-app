@@ -100,7 +100,7 @@ export default function HomePage({ user, onJoinRoom, onSignOut }: Props) {
       <header className="border-b border-border bg-card/85 backdrop-blur-md sticky top-0 z-10">
         <div className="max-w-5xl mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-gradient-to-br from-indigo-500 to-primary rounded-lg flex items-center justify-center shadow-sm">
+            <div className="w-8 h-8 bg-gradient-to-br from-stone-800 to-orange-800 rounded-lg flex items-center justify-center shadow-sm">
               <Video className="w-4 h-4 text-primary-foreground" />
             </div>
             <span className="text-lg font-bold">Real-time app</span>
@@ -114,7 +114,7 @@ export default function HomePage({ user, onJoinRoom, onSignOut }: Props) {
               className="w-9 h-9 rounded-full bg-secondary/50 hover:bg-secondary border border-border/50 text-foreground transition-all duration-300 relative overflow-hidden group cursor-pointer"
             >
               <Sun className="h-[1.1rem] w-[1.1rem] transition-all duration-500 rotate-0 scale-100 dark:-rotate-90 dark:scale-0 text-amber-500" />
-              <Moon className="absolute h-[1.1rem] w-[1.1rem] transition-all duration-500 rotate-90 scale-0 dark:rotate-0 dark:scale-100 text-indigo-400" />
+              <Moon className="absolute h-[1.1rem] w-[1.1rem] transition-all duration-500 rotate-90 scale-0 dark:rotate-0 dark:scale-100 text-stone-400" />
               <span className="sr-only">Toggle theme</span>
             </Button>
             <Separator orientation="vertical" className="h-5" />
@@ -129,7 +129,7 @@ export default function HomePage({ user, onJoinRoom, onSignOut }: Props) {
             </Button>
             <div className="flex items-center gap-2">
               <Avatar className="w-8 h-8">
-                <AvatarFallback className="text-xs bg-primary text-primary-foreground">
+                <AvatarFallback className={cn("text-xs text-white", getAvatarColor(displayName))}>
                   {getInitials(displayName)}
                 </AvatarFallback>
               </Avatar>

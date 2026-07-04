@@ -52,7 +52,7 @@ export default function AuthPage() {
   return (
     <div className="min-h-screen bg-background flex premium-bg">
       {/* Left panel */}
-      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-indigo-600 via-primary to-violet-800 flex-col justify-center px-16 py-12">
+      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-stone-900 via-neutral-900 to-orange-900 flex-col justify-center px-16 py-12">
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-6">
             <div className="w-10 h-10 bg-primary-foreground rounded-xl flex items-center justify-center">
@@ -71,7 +71,7 @@ export default function AuthPage() {
           {[
             { icon: Video, label: "HD Video Calls", desc: "Multi-user WebRTC", color: "text-sky-300" },
             { icon: Monitor, label: "Screen Share", desc: "Share any window", color: "text-amber-300" },
-            { icon: Users, label: "Collaboration", desc: "Live whiteboard", color: "text-violet-300" },
+            { icon: Users, label: "Collaboration", desc: "Live whiteboard", color: "text-rose-300" },
             { icon: Shield, label: "Encrypted", desc: "DTLS/SRTP/AES-GCM secured", color: "text-emerald-300" },
           ].map(({ icon: Icon, label, desc, color }) => (
             <div key={label} className="bg-primary-foreground/10 rounded-xl p-4">
@@ -87,7 +87,7 @@ export default function AuthPage() {
       <div className="flex-1 flex items-center justify-center px-6 py-12">
         <div className="w-full max-w-md">
           <div className="flex items-center gap-2 mb-8 lg:hidden">
-            <div className="w-8 h-8 bg-gradient-to-br from-indigo-600 via-primary to-violet-800 rounded-lg flex items-center justify-center">
+            <div className="w-8 h-8 bg-gradient-to-br from-stone-900 via-neutral-900 to-orange-900 rounded-lg flex items-center justify-center">
               <Video className="w-4 h-4 text-primary-foreground" />
             </div>
             <span className="text-xl font-bold">Real-time app</span>
