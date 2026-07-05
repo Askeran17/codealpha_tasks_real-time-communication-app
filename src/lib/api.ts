@@ -15,6 +15,7 @@ export type AuthUser = {
   username: string
   user_metadata?: {
     display_name?: string
+    avatar_url?: string
   }
 }
 
@@ -242,12 +243,14 @@ export const api = {
 
 // Maps Django User model properties to matching Supabase structures
 function mapDjangoUser(user: DjangoUser): AuthUser {
+  const storedAvatar = typeof localStorage !== 'undefined' ? localStorage.getItem(`user-avatar-${user.id}`) || "" : ""
   return {
     id: String(user.id),
     email: user.email,
     username: user.username,
     user_metadata: {
       display_name: user.first_name || user.username,
+      avatar_url: storedAvatar,
     },
   }
 }

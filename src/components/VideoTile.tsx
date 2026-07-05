@@ -1,7 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { Badge } from "@/components/ui/badge"
-import { MicOff, VideoOff, Monitor } from "lucide-react"
 import { cn, getAvatarColor } from "@/lib/utils"
 
 // Below this average frequency-bin level (0-255), the mic is treated as
@@ -24,7 +22,6 @@ export default function VideoTile({
   displayName,
   audioEnabled = true,
   videoEnabled = true,
-  screenSharing = false,
   isLocal = false,
   className,
 }: Props) {
@@ -90,7 +87,7 @@ export default function VideoTile({
   return (
     <div
       className={cn(
-        "relative rounded-xl overflow-hidden bg-muted flex items-center justify-center aspect-video transition-shadow duration-150",
+        "relative rounded-xl overflow-hidden bg-muted flex items-center justify-center transition-shadow duration-150 w-full h-full",
         speaking && "ring-2 ring-emerald-500 ring-offset-2 ring-offset-background",
         className
       )}

@@ -356,6 +356,320 @@ function AboutSubpage() {
   )
 }
 
+function CareersSubpage() {
+  const positions = [
+    { title: "Senior WebRTC/Media Engineer", type: "Remote / Full-Time", dept: "Engineering", desc: "Scale our decentralized media pipeline and optimize browser WebRTC connection reliability." },
+    { title: "Cryptography & Security Systems Architect", type: "Remote / Full-Time", dept: "Security", desc: "Design and audit client-side end-to-end cryptographic handshakes using WebCrypto APIs." },
+    { title: "UI/UX Product Designer", type: "Remote / Contract", dept: "Design", desc: "Craft pixel-perfect interfaces for our video dashboard, whiteboard canvas, and dark mode screens." }
+  ]
+
+  return (
+    <div style={{ zIndex: 2, position: 'relative', maxWidth: '1120px', margin: '0 auto', padding: '40px 56px 120px 56px', color: '#1A1B1F' }}>
+      <div style={{ maxWidth: '800px', margin: '0 auto', textAlign: 'center', marginBottom: '60px' }}>
+        <h1 style={{ fontSize: '52px', fontWeight: 800, letterSpacing: '-1.5px', marginBottom: '24px', lineHeight: 1.15 }}>
+          Join the <span style={{ color: '#F42B03' }}>MeetFlow Team</span>
+        </h1>
+        <p style={{ fontSize: '20px', lineHeight: 1.6, color: '#55575E' }}>
+          Help us build the next generation of highly secure, client-side encrypted communication products for remote teams globally.
+        </p>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '30px', marginBottom: '80px' }}>
+        <div className="pricing-card-wrap" style={{ background: '#ffffff', border: '1px solid #E8E2DC', borderRadius: '20px', padding: '36px', boxShadow: '0 10px 25px rgba(23,24,28,0.02)' }}>
+          <h3 style={{ fontSize: '20px', fontWeight: 800, color: '#1A1B1F', margin: '0 0 10px 0' }}>Privacy-First Culture</h3>
+          <p style={{ fontSize: '15px', lineHeight: 1.6, color: '#55575E', margin: 0 }}>We value privacy in our code and in our daily work. Absolute autonomy and trust.</p>
+        </div>
+        <div className="pricing-card-wrap" style={{ background: '#ffffff', border: '1px solid #E8E2DC', borderRadius: '20px', padding: '36px', boxShadow: '0 10px 25px rgba(23,24,28,0.02)' }}>
+          <h3 style={{ fontSize: '20px', fontWeight: 800, color: '#1A1B1F', margin: '0 0 10px 0' }}>Fully Distributed</h3>
+          <p style={{ fontSize: '15px', lineHeight: 1.6, color: '#55575E', margin: 0 }}>Work from anywhere in the world. Async-first schedules, meetings only when needed.</p>
+        </div>
+        <div className="pricing-card-wrap" style={{ background: '#ffffff', border: '1px solid #E8E2DC', borderRadius: '20px', padding: '36px', boxShadow: '0 10px 25px rgba(23,24,28,0.02)' }}>
+          <h3 style={{ fontSize: '20px', fontWeight: 800, color: '#1A1B1F', margin: '0 0 10px 0' }}>Open Source Drive</h3>
+          <p style={{ fontSize: '15px', lineHeight: 1.6, color: '#55575E', margin: 0 }}>We contribute heavily back to web standards, cryptography libraries, and frameworks.</p>
+        </div>
+      </div>
+
+      <div>
+        <h2 style={{ fontSize: '32px', fontWeight: 800, letterSpacing: '-0.8px', marginBottom: '32px', color: '#17181C', textAlign: 'center' }}>Open Opportunities</h2>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          {positions.map((p) => (
+            <div key={p.title} className="pricing-card-wrap" style={{ background: '#ffffff', border: '1px solid #E8E2DC', borderRadius: '20px', padding: '32px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '24px', boxShadow: '0 8px 24px rgba(23,24,28,0.01)' }}>
+              <div style={{ maxWidth: '640px' }}>
+                <span style={{ fontSize: '12px', fontWeight: 700, color: '#F42B03', textTransform: 'uppercase', letterSpacing: '1px', display: 'block', marginBottom: '6px' }}>{p.dept} • {p.type}</span>
+                <h3 style={{ fontSize: '22px', fontWeight: 800, color: '#1A1B1F', margin: '0 0 8px 0' }}>{p.title}</h3>
+                <p style={{ fontSize: '15px', color: '#55575E', margin: 0, lineHeight: 1.5 }}>{p.desc}</p>
+              </div>
+              <button onClick={() => toast.success("Application wizard is opening shortly.")} style={{ background: '#17181C', color: '#ffffff', border: 'none', borderRadius: '12px', padding: '12px 24px', fontSize: '15px', fontWeight: 700, cursor: 'pointer', transition: 'opacity 0.2s' }} className="btn-hover-glow">
+                Apply Now
+              </button>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function ContactSubpage() {
+  const [submitted, setSubmitted] = useState(false)
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    setSubmitted(true)
+    toast.success("Thank you! Your message has been sent successfully.")
+  }
+
+  return (
+    <div style={{ zIndex: 2, position: 'relative', maxWidth: '1120px', margin: '0 auto', padding: '40px 56px 120px 56px', color: '#1A1B1F' }}>
+      <div style={{ maxWidth: '800px', margin: '0 auto', textAlign: 'center', marginBottom: '60px' }}>
+        <h1 style={{ fontSize: '52px', fontWeight: 800, letterSpacing: '-1.5px', marginBottom: '24px', lineHeight: 1.15 }}>
+          Get in <span style={{ color: '#F42B03' }}>Touch</span>
+        </h1>
+        <p style={{ fontSize: '20px', lineHeight: 1.6, color: '#55575E' }}>
+          Have technical questions about E2EE cryptography, custom private cloud deployments, or need help? We're online.
+        </p>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '60px', alignItems: 'start' }}>
+        {/* Contact Form */}
+        <div className="pricing-card-wrap" style={{ background: '#ffffff', border: '1px solid #E8E2DC', borderRadius: '24px', padding: '40px', boxShadow: '0 10px 35px rgba(23,24,28,0.02)' }}>
+          {submitted ? (
+            <div style={{ textAlign: 'center', padding: '40px 0' }}>
+              <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: 'rgba(244,43,3,0.1)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', marginBottom: '20px', color: '#F42B03' }}>
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              </div>
+              <h3 style={{ fontSize: '24px', fontWeight: 800, color: '#17181C', margin: '0 0 10px 0' }}>Message Sent!</h3>
+              <p style={{ fontSize: '15px', color: '#55575E', margin: 0 }}>We typically reply within 2 hours.</p>
+            </div>
+          ) : (
+            <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              <div style={{ display: 'flex', gap: '20px' }}>
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <label style={{ fontSize: '13px', fontWeight: 700, color: '#17181C' }}>Your Name</label>
+                  <input required type="text" placeholder="John Doe" style={{ width: '100%', padding: '12px 16px', border: '1px solid #E8E2DC', borderRadius: '12px', background: '#FAFAFA', outline: 'none', fontSize: '15px' }} />
+                </div>
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <label style={{ fontSize: '13px', fontWeight: 700, color: '#17181C' }}>Email Address</label>
+                  <input required type="email" placeholder="john@company.com" style={{ width: '100%', padding: '12px 16px', border: '1px solid #E8E2DC', borderRadius: '12px', background: '#FAFAFA', outline: 'none', fontSize: '15px' }} />
+                </div>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <label style={{ fontSize: '13px', fontWeight: 700, color: '#17181C' }}>Subject</label>
+                <input required type="text" placeholder="Technical/Sales Inquiry" style={{ width: '100%', padding: '12px 16px', border: '1px solid #E8E2DC', borderRadius: '12px', background: '#FAFAFA', outline: 'none', fontSize: '15px' }} />
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <label style={{ fontSize: '13px', fontWeight: 700, color: '#17181C' }}>Message</label>
+                <textarea required rows={5} placeholder="How can we help your team?" style={{ width: '100%', padding: '12px 16px', border: '1px solid #E8E2DC', borderRadius: '12px', background: '#FAFAFA', outline: 'none', fontSize: '15px', resize: 'vertical' }} />
+              </div>
+              <button type="submit" style={{ width: '100%', padding: '14px', background: 'linear-gradient(150deg, #FF6A2E, #FF3E1D)', color: '#ffffff', border: 'none', borderRadius: '12px', fontSize: '16px', fontWeight: 700, cursor: 'pointer', transition: 'opacity 0.2s', marginTop: '8px' }} className="btn-hover-glow">
+                Send Message
+              </button>
+            </form>
+          )}
+        </div>
+
+        {/* Contact Info cards */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+          <div className="pricing-card-wrap" style={{ background: '#ffffff', border: '1px solid #E8E2DC', borderRadius: '20px', padding: '28px', display: 'flex', gap: '20px', alignItems: 'start', boxShadow: '0 8px 24px rgba(23,24,28,0.01)' }}>
+            <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: '#FFF0EC', color: '#F42B03', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+            </div>
+            <div>
+              <h4 style={{ fontSize: '16px', fontWeight: 700, color: '#17181C', margin: '0 0 4px 0' }}>Security Team</h4>
+              <p style={{ fontSize: '14px', color: '#55575E', margin: '0 0 6px 0', lineHeight: 1.4 }}>To submit vulnerability disclosures or inspect PGP logs.</p>
+              <span style={{ fontSize: '15px', fontWeight: 700, color: '#F42B03' }}>security@meetflow.com</span>
+            </div>
+          </div>
+
+          <div className="pricing-card-wrap" style={{ background: '#ffffff', border: '1px solid #E8E2DC', borderRadius: '20px', padding: '28px', display: 'flex', gap: '20px', alignItems: 'start', boxShadow: '0 8px 24px rgba(23,24,28,0.01)' }}>
+            <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: '#FFF0EC', color: '#F42B03', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            </div>
+            <div>
+              <h4 style={{ fontSize: '16px', fontWeight: 700, color: '#17181C', margin: '0 0 4px 0' }}>General Support</h4>
+              <p style={{ fontSize: '14px', color: '#55575E', margin: '0 0 6px 0', lineHeight: 1.4 }}>Troubleshooting assistance and integration workflows.</p>
+              <span style={{ fontSize: '15px', fontWeight: 700, color: '#F42B03' }}>support@meetflow.com</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function SecuritySubpage() {
+  const audits = [
+    { title: "E2EE Handshake Library Audit", date: "June 15, 2026", auditor: "Cure53", status: "Verified Secure", desc: "Full penetration test and code audit of our WebCrypto Diffie-Hellman handshake flow. Zero vulnerabilities found." },
+    { title: "Relay Server TLS 1.3 Compliance Check", date: "May 10, 2026", auditor: "Internal Security", status: "Passed", desc: "Verification of TLS 1.3 protocol requirements on TURN/STUN relay servers to block sniffing." },
+    { title: "Client-Side Storage PGP Audit", date: "April 28, 2026", auditor: "OpenSource Community", status: "Verified Secure", desc: "Audit of sessionStorage/localStorage encryptors mapping authentication tokens." }
+  ]
+
+  return (
+    <div style={{ zIndex: 2, position: 'relative', maxWidth: '1120px', margin: '0 auto', padding: '40px 56px 120px 56px', color: '#1A1B1F' }}>
+      <div style={{ maxWidth: '800px', margin: '0 auto', textAlign: 'center', marginBottom: '60px' }}>
+        <h1 style={{ fontSize: '52px', fontWeight: 800, letterSpacing: '-1.5px', marginBottom: '24px', lineHeight: 1.15 }}>
+          Security & <span style={{ color: '#F42B03' }}>Transparency Logs</span>
+        </h1>
+        <p style={{ fontSize: '20px', lineHeight: 1.6, color: '#55575E' }}>
+          We publish all cryptographic audits, library signatures, and server configurations to ensure absolute verification of your communications.
+        </p>
+      </div>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+        {audits.map((a) => (
+          <div key={a.title} className="pricing-card-wrap" style={{ background: '#ffffff', border: '1px solid #E8E2DC', borderRadius: '20px', padding: '32px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '24px', boxShadow: '0 8px 24px rgba(23,24,28,0.01)' }}>
+            <div style={{ maxWidth: '720px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '6px' }}>
+                <span style={{ fontSize: '12px', fontWeight: 700, color: '#F42B03', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{a.auditor}</span>
+                <span style={{ color: '#E8E2DC' }}>•</span>
+                <span style={{ fontSize: '13px', color: '#9A9CA3', fontWeight: 600 }}>{a.date}</span>
+              </div>
+              <h3 style={{ fontSize: '22px', fontWeight: 800, color: '#1A1B1F', margin: '0 0 8px 0' }}>{a.title}</h3>
+              <p style={{ fontSize: '15px', color: '#55575E', margin: 0, lineHeight: 1.5 }}>{a.desc}</p>
+            </div>
+            <span style={{ background: '#E6F4EA', color: '#137333', fontSize: '13px', fontWeight: 700, padding: '6px 14px', borderRadius: '999px', display: 'inline-block' }}>
+              {a.status}
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function StatusSubpage() {
+  const components = [
+    { name: "Signaling Gateway", uptime: "100%", status: "Operational" },
+    { name: "TURN/STUN Handshake Relays", uptime: "99.98%", status: "Operational" },
+    { name: "E2EE Key Exchange Broker", uptime: "100%", status: "Operational" },
+    { name: "Main Web Application Server", uptime: "99.99%", status: "Operational" }
+  ]
+
+  return (
+    <div style={{ zIndex: 2, position: 'relative', maxWidth: '960px', margin: '0 auto', padding: '40px 56px 120px 56px', color: '#1A1B1F' }}>
+      <div style={{ maxWidth: '800px', margin: '0 auto', textAlign: 'center', marginBottom: '60px' }}>
+        <h1 style={{ fontSize: '52px', fontWeight: 800, letterSpacing: '-1.5px', marginBottom: '24px', lineHeight: 1.15 }}>
+          Systems <span style={{ color: '#F42B03' }}>Status</span>
+        </h1>
+        <p style={{ fontSize: '20px', lineHeight: 1.6, color: '#55575E' }}>
+          Live updates on MeetFlow signaling channels, relay infrastructure, and app availability.
+        </p>
+      </div>
+
+      {/* Main Status Banner */}
+      <div style={{ background: '#E6F4EA', border: '1px solid #C2E7CB', borderRadius: '18px', padding: '24px', display: 'flex', alignItems: 'center', gap: '16px', color: '#137333', fontSize: '17px', fontWeight: 700, marginBottom: '40px', boxShadow: '0 8px 24px rgba(19,115,51,0.04)' }}>
+        <span style={{ width: '12px', height: '12px', borderRadius: '50%', background: '#137333', display: 'inline-block', boxShadow: '0 0 10px #137333' }}></span>
+        All Systems Operational — Uptime relay connection active.
+      </div>
+
+      <div className="pricing-card-wrap" style={{ background: '#ffffff', border: '1px solid #E8E2DC', borderRadius: '24px', padding: '36px', boxShadow: '0 10px 30px rgba(23,24,28,0.02)', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+        {components.map((c, idx) => (
+          <div key={c.name} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '16px', borderBottom: idx === components.length - 1 ? 'none' : '1px solid #F1ECE6' }}>
+            <div>
+              <h3 style={{ fontSize: '17px', fontWeight: 700, color: '#17181C', margin: '0 0 4px 0' }}>{c.name}</h3>
+              <span style={{ fontSize: '13px', color: '#9A9CA3', fontWeight: 600 }}>Uptime past 90 days: {c.uptime}</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <span style={{ fontSize: '14px', fontWeight: 700, color: '#137333' }}>{c.status}</span>
+              <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#137333', display: 'inline-block' }}></span>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function PrivacySubpage() {
+  return (
+    <div style={{ zIndex: 2, position: 'relative', maxWidth: '960px', margin: '0 auto', padding: '40px 56px 120px 56px', color: '#1A1B1F' }}>
+      <div style={{ marginBottom: '40px', textAlign: 'center' }}>
+        <h1 style={{ fontSize: '46px', fontWeight: 800, letterSpacing: '-1.5px', marginBottom: '16px', lineHeight: 1.15 }}>
+          Privacy <span style={{ color: '#F42B03' }}>Policy</span>
+        </h1>
+        <p style={{ fontSize: '18px', lineHeight: 1.6, color: '#55575E' }}>
+          Last updated: July 5, 2026. Your data privacy is our core engineering mission.
+        </p>
+      </div>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '32px', fontSize: '16px', lineHeight: 1.65, color: '#2C2E35', background: '#ffffff', border: '1px solid #E8E2DC', borderRadius: '24px', padding: '48px', boxShadow: '0 10px 30px rgba(23,24,28,0.02)' }}>
+        <div>
+          <h2 style={{ fontSize: '22px', fontWeight: 800, color: '#17181C', marginBottom: '12px' }}>1. Zero Data Retention & Media Logging</h2>
+          <p style={{ margin: 0 }}>
+            MeetFlow is built using secure WebRTC technology. We do not store, view, or record your video calls, screen shares, or microphone streams. All media data is transmitted directly peer-to-peer between meeting participants. Our signaling relays only facilitate connections and cannot access your conversation.
+          </p>
+        </div>
+
+        <div style={{ borderTop: '1px solid #F1ECE6', paddingTop: '24px' }}>
+          <h2 style={{ fontSize: '22px', fontWeight: 800, color: '#17181C', marginBottom: '12px' }}>2. Client-Side Cryptography (E2EE)</h2>
+          <p style={{ margin: 0 }}>
+            When End-to-End Encryption (E2EE) is enabled, your text messages and collaborative whiteboard data are encrypted directly inside your browser before transmission. The decryption keys remain exclusively on your device, making it mathematically impossible for MeetFlow or third parties to decrypt your data.
+          </p>
+        </div>
+
+        <div style={{ borderTop: '1px solid #F1ECE6', paddingTop: '24px' }}>
+          <h2 style={{ fontSize: '22px', fontWeight: 800, color: '#17181C', marginBottom: '12px' }}>3. Information We Collect</h2>
+          <p style={{ margin: 0 }}>
+            We only collect basic account data required for registration and system access: your email, chosen display name, and securely hashed passwords. Your profile photos are converted and stored locally in your browser storage or transmitted via standard secure API protocols.
+          </p>
+        </div>
+
+        <div style={{ borderTop: '1px solid #F1ECE6', paddingTop: '24px' }}>
+          <h2 style={{ fontSize: '22px', fontWeight: 800, color: '#17181C', marginBottom: '12px' }}>4. Cookies & Persistent Storage</h2>
+          <p style={{ margin: 0 }}>
+            We do not use tracking or advertising cookies. We utilize browser local storage to keep your session authenticated and to persist your workspace UI preferences (such as avatar settings, sound level preferences, and theme choices).
+          </p>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function TermsSubpage() {
+  return (
+    <div style={{ zIndex: 2, position: 'relative', maxWidth: '960px', margin: '0 auto', padding: '40px 56px 120px 56px', color: '#1A1B1F' }}>
+      <div style={{ marginBottom: '40px', textAlign: 'center' }}>
+        <h1 style={{ fontSize: '46px', fontWeight: 800, letterSpacing: '-1.5px', marginBottom: '16px', lineHeight: 1.15 }}>
+          Terms of <span style={{ color: '#F42B03' }}>Service</span>
+        </h1>
+        <p style={{ fontSize: '18px', lineHeight: 1.6, color: '#55575E' }}>
+          Last updated: July 5, 2026. Please read these terms carefully.
+        </p>
+      </div>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '32px', fontSize: '16px', lineHeight: 1.65, color: '#2C2E35', background: '#ffffff', border: '1px solid #E8E2DC', borderRadius: '24px', padding: '48px', boxShadow: '0 10px 30px rgba(23,24,28,0.02)' }}>
+        <div>
+          <h2 style={{ fontSize: '22px', fontWeight: 800, color: '#17181C', marginBottom: '12px' }}>1. Acceptance of Agreement</h2>
+          <p style={{ margin: 0 }}>
+            By registering for or using the MeetFlow workspace, you explicitly agree to follow and be bound by these Terms of Service. If you do not agree with these conditions, you must not use our service. We reserve the right to revise these terms at any time.
+          </p>
+        </div>
+
+        <div style={{ borderTop: '1px solid #F1ECE6', paddingTop: '24px' }}>
+          <h2 style={{ fontSize: '22px', fontWeight: 800, color: '#17181C', marginBottom: '12px' }}>2. Account Security & Verification</h2>
+          <p style={{ margin: 0 }}>
+            You are entirely responsible for protecting your account credentials and passwords. You agree to provide accurate registration information and represent that your account will not be utilized for fraudulent, abusive, or unauthorized purposes.
+          </p>
+        </div>
+
+        <div style={{ borderTop: '1px solid #F1ECE6', paddingTop: '24px' }}>
+          <h2 style={{ fontSize: '22px', fontWeight: 800, color: '#17181C', marginBottom: '12px' }}>3. Permitted Service Usage</h2>
+          <p style={{ margin: 0 }}>
+            MeetFlow is provided to host real-time team meetings, whiteboard tasks, and instant chats. You agree not to overload our peer-handshake relay servers, perform penetration tests without authorization, or utilize channels to distribute illegal media content.
+          </p>
+        </div>
+
+        <div style={{ borderTop: '1px solid #F1ECE6', paddingTop: '24px' }}>
+          <h2 style={{ fontSize: '22px', fontWeight: 800, color: '#17181C', marginBottom: '12px' }}>4. Disclaimer & Liability Limits</h2>
+          <p style={{ margin: 0 }}>
+            MeetFlow is delivered on an "as is" and "as available" basis. MeetFlow, its team, and developers do not guarantee 100% uninterrupted availability and shall not be held liable for any data loss, communication interruptions, or damages arising from your usage of the platform.
+          </p>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function AuthPage() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
@@ -365,17 +679,23 @@ export default function AuthPage() {
   const [authMode, setAuthMode] = useState<"signin" | "signup">("signin")
   const [modalOpen, setModalOpen] = useState(false)
 
-  const [subpage, setSubpage] = useState<"home" | "product" | "features" | "pricing" | "resources" | "about">(() => {
+  const [subpage, setSubpage] = useState<"home" | "product" | "features" | "pricing" | "resources" | "about" | "careers" | "contact" | "security" | "status" | "privacy" | "terms">(() => {
     const path = window.location.pathname
     if (path === "/product") return "product"
     if (path === "/features") return "features"
     if (path === "/pricing") return "pricing"
     if (path === "/resources") return "resources"
     if (path === "/about") return "about"
+    if (path === "/careers") return "careers"
+    if (path === "/contact") return "contact"
+    if (path === "/security") return "security"
+    if (path === "/status") return "status"
+    if (path === "/privacy") return "privacy"
+    if (path === "/terms") return "terms"
     return "home"
   })
 
-  const handleNavigate = (page: "home" | "product" | "features" | "pricing" | "resources" | "about") => {
+  const handleNavigate = (page: "home" | "product" | "features" | "pricing" | "resources" | "about" | "careers" | "contact" | "security" | "status" | "privacy" | "terms") => {
     const path = page === "home" ? "/" : `/${page}`
     window.history.pushState(null, "", path)
     setSubpage(page)
@@ -390,6 +710,12 @@ export default function AuthPage() {
       else if (path === "/pricing") setSubpage("pricing")
       else if (path === "/resources") setSubpage("resources")
       else if (path === "/about") setSubpage("about")
+      else if (path === "/careers") setSubpage("careers")
+      else if (path === "/contact") setSubpage("contact")
+      else if (path === "/security") setSubpage("security")
+      else if (path === "/status") setSubpage("status")
+      else if (path === "/privacy") setSubpage("privacy")
+      else if (path === "/terms") setSubpage("terms")
       else setSubpage("home")
     }
     window.addEventListener("popstate", handlePop)
@@ -864,14 +1190,16 @@ export default function AuthPage() {
         {/* NAV */}
         {/* NAV */}
         <div className="nav-header">
-          <div onClick={() => handleNavigate("home")} style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}>
-            <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: 'linear-gradient(150deg, #FF5A1F, #E52603)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 6px 14px rgba(229,38,3,0.3)' }}>
+          <div onClick={() => handleNavigate("home")} style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }} className="select-none">
+            <div style={{ width: '44px', height: '44px', borderRadius: '16px', background: 'linear-gradient(150deg, #FF6A2E, #FF3E1D)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 6px 14px rgba(255,106,46,0.25)' }}>
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
                 <rect x="2" y="6" width="13" height="12" rx="3" fill="#ffffff" stroke="none"></rect>
                 <path d="M16 10.5 21 7.5 v9 L16 13.5" fill="#ffffff" stroke="none"></path>
               </svg>
             </div>
-            <div style={{ fontSize: '27px', fontWeight: 800, letterSpacing: '-0.5px' }}>Meet<span style={{ color: '#F42B03' }}>Flow</span></div>
+            <div style={{ fontSize: '27px', fontWeight: 800, letterSpacing: '-0.5px', color: '#17181C' }}>
+              <span>Meet</span><span style={{ color: '#FF6A2E' }}>Flow</span>
+            </div>
           </div>
           <div className="hidden md:flex" style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: '52px', fontSize: '17px', fontWeight: 600, color: '#26272B' }}>
             <button onClick={() => handleNavigate("product")} className="nav-link" style={{ background: 'none', border: 'none', padding: 0, fontSize: '17px', fontWeight: 600, color: '#26272B', cursor: 'pointer', transition: 'color 0.2s' }}>Product</button>
@@ -1039,6 +1367,12 @@ export default function AuthPage() {
         {subpage === "pricing" && <PricingSubpage openAuth={openAuth} />}
         {subpage === "resources" && <ResourcesSubpage />}
         {subpage === "about" && <AboutSubpage />}
+        {subpage === "careers" && <CareersSubpage />}
+        {subpage === "contact" && <ContactSubpage />}
+        {subpage === "security" && <SecuritySubpage />}
+        {subpage === "status" && <StatusSubpage />}
+        {subpage === "privacy" && <PrivacySubpage />}
+        {subpage === "terms" && <TermsSubpage />}
       </div>
 
       {/* ===== WAVE DIVIDER ===== */}
@@ -1138,15 +1472,15 @@ export default function AuthPage() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
                 <span style={{ color: '#ffffff', fontWeight: 700, fontSize: '15px' }}>Resources</span>
                 <button onClick={() => handleNavigate("resources")} style={{ background: 'none', border: 'none', padding: 0, color: '#9A9CA3', fontSize: '14px', textAlign: 'left', cursor: 'pointer' }} className="footer-link-btn">Documentation</button>
-                <a href="#" style={{ color: '#9A9CA3', fontSize: '14px', textDecoration: 'none' }} className="footer-link-btn">Security Logs</a>
-                <a href="#" style={{ color: '#9A9CA3', fontSize: '14px', textDecoration: 'none' }} className="footer-link-btn">Systems Status</a>
+                <button onClick={() => handleNavigate("security")} style={{ background: 'none', border: 'none', padding: 0, color: '#9A9CA3', fontSize: '14px', textAlign: 'left', cursor: 'pointer' }} className="footer-link-btn">Security Logs</button>
+                <button onClick={() => handleNavigate("status")} style={{ background: 'none', border: 'none', padding: 0, color: '#9A9CA3', fontSize: '14px', textAlign: 'left', cursor: 'pointer' }} className="footer-link-btn">Systems Status</button>
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
                 <span style={{ color: '#ffffff', fontWeight: 700, fontSize: '15px' }}>Company</span>
                 <button onClick={() => handleNavigate("about")} style={{ background: 'none', border: 'none', padding: 0, color: '#9A9CA3', fontSize: '14px', textAlign: 'left', cursor: 'pointer' }} className="footer-link-btn">About Us</button>
-                <a href="#" style={{ color: '#9A9CA3', fontSize: '14px', textDecoration: 'none' }} className="footer-link-btn">Careers</a>
-                <a href="#" style={{ color: '#9A9CA3', fontSize: '14px', textDecoration: 'none' }} className="footer-link-btn">Contact</a>
+                <button onClick={() => handleNavigate("careers")} style={{ background: 'none', border: 'none', padding: 0, color: '#9A9CA3', fontSize: '14px', textAlign: 'left', cursor: 'pointer' }} className="footer-link-btn">Careers</button>
+                <button onClick={() => handleNavigate("contact")} style={{ background: 'none', border: 'none', padding: 0, color: '#9A9CA3', fontSize: '14px', textAlign: 'left', cursor: 'pointer' }} className="footer-link-btn">Contact</button>
               </div>
             </div>
 
@@ -1196,8 +1530,8 @@ export default function AuthPage() {
             <span>© 2026 MeetFlow Inc. All rights reserved.</span>
             
             <div style={{ display: 'flex', gap: '24px' }}>
-              <a href="#" style={{ color: '#55575E', textDecoration: 'none' }}>Privacy Policy</a>
-              <a href="#" style={{ color: '#55575E', textDecoration: 'none' }}>Terms of Service</a>
+              <button onClick={() => handleNavigate("privacy")} style={{ background: 'none', border: 'none', padding: 0, color: '#55575E', fontSize: '13px', cursor: 'pointer', transition: 'color 0.2s' }} className="footer-link-btn">Privacy Policy</button>
+              <button onClick={() => handleNavigate("terms")} style={{ background: 'none', border: 'none', padding: 0, color: '#55575E', fontSize: '13px', cursor: 'pointer', transition: 'color 0.2s' }} className="footer-link-btn">Terms of Service</button>
             </div>
           </div>
         </div>
@@ -1206,8 +1540,22 @@ export default function AuthPage() {
       {/* Auth Modal (Dialog) */}
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
         <DialogContent className="sm:max-w-md bg-white text-slate-900 border border-slate-100 rounded-2xl p-6">
+          <div className="flex justify-center mb-2">
+            <div className="flex items-center gap-2.5 select-none">
+              <div className="w-8 h-8 bg-gradient-to-br from-[#FF6A2E] to-[#FF3E1D] rounded-xl flex items-center justify-center shadow-md shadow-orange-500/20 shrink-0">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="2" y="6" width="13" height="12" rx="3" fill="#ffffff" stroke="none"></rect>
+                  <path d="M16 10.5 21 7.5 v9 L16 13.5" fill="#ffffff" stroke="none"></path>
+                </svg>
+              </div>
+              <span className="text-lg font-extrabold tracking-tight">
+                <span className="text-stone-900">Meet</span>
+                <span className="text-[#FF6A2E]">Flow</span>
+              </span>
+            </div>
+          </div>
           <DialogHeader className="space-y-1">
-            <DialogTitle className="text-2xl font-bold tracking-tight">Welcome to MeetFlow</DialogTitle>
+            <DialogTitle className="text-2xl font-bold tracking-tight text-center">Welcome to MeetFlow</DialogTitle>
             <DialogDescription className="text-sm text-slate-500">
               {authMode === "signin" ? "Sign in to your account" : "Create a new free account"}
             </DialogDescription>

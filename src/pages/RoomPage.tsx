@@ -5,23 +5,43 @@ import { useWebRTC } from "@/hooks/use-webrtc"
 import VideoTile from "@/components/VideoTile"
 import ChatPanel from "@/components/ChatPanel"
 import Whiteboard from "@/components/Whiteboard"
-import { Button } from "@/components/ui/button"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
-import { Badge } from "@/components/ui/badge"
-import { Separator } from "@/components/ui/separator"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import {
   Mic,
   MicOff,
-  Video,
+  Video as VideoIcon,
   VideoOff,
   Monitor,
   MonitorOff,
   MessageSquare,
-  PenLine,
   PhoneOff,
   Users,
   Shield,
   Link2,
+  LayoutDashboard,
+  Disc,
+  Settings,
+  Crown,
+  ChevronDown,
+  X,
+  Menu,
+  Maximize2,
+  Volume2,
+  Smile,
+  Circle,
+  MoreHorizontal,
+  MoreVertical,
+  Folder,
+  ChevronRight,
+  Calendar,
+  PenLine
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -31,12 +51,16 @@ type Props = {
   onLeave: () => void
 }
 
-type Panel = "chat" | "whiteboard" | null
+type Panel = "chat" | "files" | "whiteboard" | null
 
 export default function RoomPage({ roomId, user, onLeave }: Props) {
   const [activePanel, setActivePanel] = useState<Panel>("chat")
-  const [seconds, setSeconds] = useState(24 * 3600 + 22 * 60 + 52) // Initial count-up duration state
+  const [seconds, setSeconds] = useState(0) // Starting meeting timer from zero
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
+  const [handRaised, setHandRaised] = useState(false)
+  const [isRecording, setIsRecording] = useState(false)
 
+  // Clock ticking
   useEffect(() => {
     const timer = setInterval(() => {
       setSeconds(prev => prev + 1)
@@ -51,6 +75,7 @@ export default function RoomPage({ roomId, user, onLeave }: Props) {
     return `${hh}:${mm}:${ss}`
   }
 
+  // WebRTC Hook connection
   const {
     localStream,
     screenStream,
@@ -64,13 +89,44 @@ export default function RoomPage({ roomId, user, onLeave }: Props) {
   } = useWebRTC(roomId, user)
 
   const peersArray = Array.from(peers.values())
-  const totalParticipants = 1 + peersArray.length
+  const activePeer = peersArray.find(p => p.screenSharing) || peersArray[0] || null
+  const getInitials = (name: string) =>
+    name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2)
 
-  // iOS Safari doesn't shrink `100dvh` when the on-screen keyboard opens, so
-  // the room (sized by dvh, overflow-hidden) stays full-height while the
-  // keyboard covers its bottom — pushing the chat input off-screen with no
-  // way to scroll it back into view. Tracking visualViewport instead keeps
-  // the room's actual height in sync with the space left above the keyboard.
+  const [audioLevel, setAudioLevel] = useState(0)
+
+  useEffect(() => {
+    const audioTrack = localStream?.getAudioTracks()[0]
+    if (!audioTrack || !localState.audioEnabled) {
+      setAudioLevel(0)
+      return
+    }
+
+    const audioContext = new AudioContext()
+    const source = audioContext.createMediaStreamSource(new MediaStream([audioTrack]))
+    const analyser = audioContext.createAnalyser()
+    analyser.fftSize = 64
+    analyser.smoothingTimeConstant = 0.4
+    source.connect(analyser)
+    const data = new Uint8Array(analyser.frequencyBinCount)
+
+    let rafId: number
+    const tick = () => {
+      analyser.getByteFrequencyData(data)
+      const avg = data.reduce((sum, v) => sum + v, 0) / data.length
+      setAudioLevel(avg / 120)
+      rafId = requestAnimationFrame(tick)
+    }
+    tick()
+
+    return () => {
+      cancelAnimationFrame(rafId)
+      source.disconnect()
+      audioContext.close()
+    }
+  }, [localStream, localState.audioEnabled])
+
+  // Viewport tracking for mobile keyboards
   useEffect(() => {
     const setViewportHeight = () => {
       const height = window.visualViewport?.height ?? window.innerHeight
@@ -85,9 +141,7 @@ export default function RoomPage({ roomId, user, onLeave }: Props) {
     }
   }, [])
 
-  // Rooms are now reachable by pasting/opening a shared link, so a stale
-  // or mistyped ID needs a clean bounce back home instead of a silent
-  // WebRTC/chat failure inside a room that doesn't exist.
+  // Verify room exists on load
   useEffect(() => {
     let cancelled = false
     api.getRoom(roomId).catch(() => {
@@ -120,313 +174,614 @@ export default function RoomPage({ roomId, user, onLeave }: Props) {
     }
   }
 
-  // Determine video grid columns
-  const gridCols =
-    totalParticipants === 1
-      ? "grid-cols-1"
-      : totalParticipants === 2
-      ? "grid-cols-2"
-      : totalParticipants <= 4
-      ? "grid-cols-2"
-      : "grid-cols-3"
 
-  // Same column counts, scoped to the sm+ breakpoint — used when the side
-  // panel is open on mobile, where the video area becomes a small
-  // horizontally-scrolling strip instead of a grid.
-  const gridColsSm =
-    totalParticipants === 1
-      ? "sm:grid-cols-1"
-      : totalParticipants === 2
-      ? "sm:grid-cols-2"
-      : totalParticipants <= 4
-      ? "sm:grid-cols-2"
-      : "sm:grid-cols-3"
+  // Sidebar navigation links definition (dark mode version)
+  const navItems: { name: string; icon: any; active: boolean; badge?: number }[] = [
+    { name: "Dashboard", icon: LayoutDashboard, active: true },
+    { name: "Meeting Rooms", icon: VideoIcon, active: false },
+    { name: "Calendar", icon: Calendar, active: false },
+    { name: "Recordings", icon: Disc, active: false },
+    { name: "Chats", icon: MessageSquare, active: false },
+    { name: "People", icon: Users, active: false },
+    { name: "Files", icon: Folder, active: false },
+    { name: "Settings", icon: Settings, active: false },
+  ]
+
+  const sidebarContent = (
+    <div className="flex flex-col h-full justify-between select-none">
+      {/* Brand logo */}
+      <div>
+        <div className="flex items-center gap-3 px-2 mb-8">
+          <div className="w-10 h-10 bg-gradient-to-br from-[#FF6A2E] to-[#FF3E1D] rounded-2xl flex items-center justify-center shadow-md shadow-orange-500/20 shrink-0">
+            <VideoIcon className="w-5 h-5 text-white" />
+          </div>
+          <span className="text-xl font-extrabold tracking-tight">
+            <span className="text-white">Meet</span>
+            <span className="text-[#FF6A2E]">Flow</span>
+          </span>
+        </div>
+
+        {/* Navigation list */}
+        <nav className="space-y-1">
+          {navItems.map((item) => {
+            const Icon = item.icon
+            return (
+              <button
+                key={item.name}
+                className={cn(
+                  "w-full flex items-center justify-between px-3 py-3 text-[15px] font-medium rounded-xl transition-all duration-200 cursor-pointer text-left",
+                  item.active 
+                    ? "bg-[#1C1C21] text-[#FF6A2E]" 
+                    : "text-stone-400 hover:bg-[#1A1A20] hover:text-white"
+                )}
+              >
+                <div className="flex items-center gap-3.5">
+                  <Icon className={cn("w-[21px] h-[21px]", item.active ? "text-[#FF6A2E]" : "text-stone-500")} />
+                  {item.name}
+                </div>
+                {item.badge && (
+                  <span className="w-5 h-5 bg-[#FF2E63] text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+                    {item.badge}
+                  </span>
+                )}
+              </button>
+            )
+          })}
+        </nav>
+      </div>
+
+      {/* Upgrade to Pro Card */}
+      <div className="relative overflow-hidden bg-gradient-to-br from-[#2E1E1E] to-[#171626] border border-[#2C2A3A] bg-clip-padding p-5 rounded-2xl">
+        {/* Soft background glow circles */}
+        <div className="absolute -top-6 -right-6 w-16 h-16 rounded-full bg-[#FF6A2E]/10 blur-md pointer-events-none"></div>
+        <div className="absolute -bottom-6 -left-6 w-16 h-16 rounded-full bg-[#8B5CF6]/10 blur-md pointer-events-none"></div>
+        
+        <div className="w-9 h-9 bg-white/5 rounded-lg shadow-sm flex items-center justify-center mb-4">
+          <Crown className="w-4 h-4 text-amber-500 fill-amber-500" />
+        </div>
+        <h3 className="text-base font-bold text-white mb-1.5">Upgrade to Pro</h3>
+        <p className="text-xs text-stone-400 leading-relaxed mb-4">
+          Unlock premium features and enhanced security.
+        </p>
+        <button 
+          onClick={() => toast.info("Premium plans are currently invitation-only.")}
+          className="w-full py-2.5 px-4 bg-gradient-to-r from-[#FF6A2E] to-[#FF2E63] text-white text-sm font-semibold rounded-xl hover:opacity-95 transition-opacity shadow-sm shadow-red-500/10 cursor-pointer flex items-center justify-center gap-1"
+        >
+          Upgrade Now
+          <ChevronRight className="w-3.5 h-3.5" />
+        </button>
+      </div>
+    </div>
+  )
 
   return (
-    <div
-      className="flex flex-col bg-[#17181C] overflow-hidden"
+    <div 
+      className="flex bg-[#0B0C0E] overflow-hidden text-white w-full select-none"
       style={{ height: "var(--room-vh, 100dvh)", fontFamily: '"Plus Jakarta Sans", sans-serif' }}
     >
-      {/* Top bar */}
-      <header className="flex items-center gap-3 px-4 md:px-5 h-14 border-b border-white/5 bg-[#17181C] shrink-0 text-white select-none">
-        <div className="w-2.5 h-2.5 rounded-full bg-[#F42B03]"></div>
-        <div className="text-sm md:text-base font-bold truncate">Team Sync Meeting</div>
-        <div className="flex items-center gap-1.5 text-[#FF4A16] font-extrabold text-[11px] md:text-xs tracking-wider shrink-0 ml-1">
-          <div className="w-1.5 h-1.5 rounded-full bg-[#FF4A16] animate-pulse"></div>
-          LIVE
-        </div>
-        <div className="flex items-center gap-1 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] md:text-xs font-bold px-2 py-0.5 rounded-md tracking-wider shrink-0 ml-1.5 select-none">
-          <Shield className="w-3.5 h-3.5 text-emerald-400" />
-          <span>E2EE SECURE</span>
-        </div>
-        <div className="text-slate-400 font-semibold font-variant-numeric-tabular-nums text-xs md:text-sm shrink-0 ml-1">{formatDuration()}</div>
-        
-        <div className="flex-grow"></div>
-        
-        <div className="flex items-center gap-4">
-          {/* Invite link copied button */}
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                size="sm"
-                variant="outline"
-                className="h-8.5 gap-1.5 px-3 text-xs bg-white/5 hover:bg-white/10 text-white border-white/10"
-                onClick={handleCopyInviteLink}
-              >
-                <Link2 className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Invite</span>
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>Copy invite link</TooltipContent>
-          </Tooltip>
+      {/* Desktop Sidebar (Left side panel) */}
+      <aside className="hidden lg:block w-[280px] bg-[#111214] border-r border-white/5 p-6 shrink-0 h-full">
+        {sidebarContent}
+      </aside>
 
-          <Separator orientation="vertical" className="h-4 bg-white/10" />
+      {/* Mobile Drawer Sidebar Backdrop */}
+      {mobileSidebarOpen && (
+        <div 
+          className="lg:hidden fixed inset-0 bg-stone-900/80 backdrop-blur-sm z-50 transition-opacity"
+          onClick={() => setMobileSidebarOpen(false)}
+        />
+      )}
 
-          {/* Participants */}
-          <div className="flex items-center gap-1.5 text-xs md:text-sm font-semibold text-white/90">
-            <Users className="w-4.5 h-4.5" />
-            <span>{totalParticipants}</span>
+      {/* Mobile Sidebar Slider */}
+      <aside 
+        className={cn(
+          "lg:hidden fixed inset-y-0 left-0 w-[280px] bg-[#111214] border-r border-white/5 p-6 z-50 transition-transform duration-300 transform",
+          mobileSidebarOpen ? "translate-x-0" : "-translate-x-full"
+        )}
+      >
+        <button 
+          className="absolute top-4 right-4 p-1.5 rounded-lg hover:bg-stone-900 text-stone-400 cursor-pointer"
+          onClick={() => setMobileSidebarOpen(false)}
+        >
+          <X className="w-5 h-5" />
+        </button>
+        {sidebarContent}
+      </aside>
+
+      {/* Main Calling Column */}
+      <div className="flex-1 flex flex-col min-w-0 h-full">
+        
+        {/* Topbar Header */}
+        <header className="bg-[#111214]/65 backdrop-blur-md px-6 h-20 shrink-0 border-b border-white/5 flex items-center justify-between z-20">
+          <div className="flex items-center gap-3">
+            {/* Mobile Sidebar Button */}
+            <button 
+              className="lg:hidden p-2 rounded-xl bg-white/5 hover:bg-white/10 text-stone-300 cursor-pointer"
+              onClick={() => setMobileSidebarOpen(true)}
+            >
+              <Menu className="w-5 h-5" />
+            </button>
+            <h2 className="text-lg font-bold">Team Sync Meeting</h2>
+            
+            {/* LIVE indicator */}
+            <span className="flex items-center gap-1.5 text-xs font-bold bg-red-600/10 text-red-500 border border-red-600/20 px-2 py-0.5 rounded-lg ml-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
+              LIVE
+            </span>
+
+            {/* SECURE E2EE indicator */}
+            <span className="flex items-center gap-1.5 text-xs font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2.5 py-0.5 rounded-lg ml-1.5">
+              <Shield className="w-3.5 h-3.5 text-emerald-400" />
+              SECURE
+            </span>
+
+            {/* Duration display */}
+            <span className="text-sm font-semibold text-stone-400 font-mono ml-2 tracking-wider">
+              {formatDuration()}
+            </span>
           </div>
 
-          <Separator orientation="vertical" className="h-4 bg-white/10" />
+          <div className="flex items-center gap-4">
+            {/* Dark Invite Pill */}
+            <button 
+              onClick={handleCopyInviteLink}
+              className="flex items-center gap-2 py-2 px-4 rounded-full bg-white/5 hover:bg-white/10 border border-white/5 text-stone-300 text-sm font-semibold transition-colors cursor-pointer"
+            >
+              <Link2 className="w-4 h-4" />
+              Invite
+            </button>
 
-          {/* Toggle chat bubble */}
-          <button 
-            onClick={() => togglePanel("chat")}
-            className="bg-transparent border-none p-0 cursor-pointer hover:opacity-80 transition-opacity"
-          >
-            <MessageSquare className="w-4.5 h-4.5 text-[#E8E9EC]" />
-          </button>
+            {/* Participants counter */}
+            <div className="flex items-center gap-1.5 text-sm font-bold text-stone-300">
+              <Users className="w-4.5 h-4.5 text-stone-400" />
+              <span>{1 + peersArray.length}</span>
+            </div>
 
-          <svg className="ml-2.5 cursor-pointer hover:opacity-80 transition-opacity" width="19" height="19" viewBox="0 0 24 24" fill="#E8E9EC">
-            <circle cx="12" cy="5" r="1.6"></circle>
-            <circle cx="12" cy="12" r="1.6"></circle>
-            <circle cx="12" cy="19" r="1.6"></circle>
-          </svg>
-        </div>
-      </header>
+            <div className="w-[1px] h-5 bg-white/10" />
 
-      {/* Main content */}
-      <div className="flex flex-col flex-1 overflow-hidden">
-        <div className="flex flex-col sm:flex-row flex-1 overflow-hidden">
-          {/* Video area */}
-          <div
-            className={cn(
-              "overflow-hidden",
-              activePanel ? "w-full aspect-video shrink-0 sm:h-auto sm:flex-1" : "flex-1"
-            )}
-          >
-            <div
+            {/* Chat toggle */}
+            <button 
+              onClick={() => togglePanel("chat")}
               className={cn(
-                "h-full gap-2 p-3",
-                activePanel
-                  ? cn("flex items-center overflow-x-auto sm:grid sm:overflow-auto sm:content-start", gridColsSm)
-                  : cn("grid overflow-auto content-start", gridCols)
+                "p-2 rounded-xl transition-all cursor-pointer",
+                activePanel === "chat" ? "bg-[#FF6A2E]/25 text-[#FF6A2E]" : "text-stone-300 hover:bg-white/5"
               )}
             >
-              {/* Local video */}
-              <VideoTile
-                stream={localState.screenSharing ? screenStream : localStream}
-                displayName={displayName}
-                audioEnabled={localState.audioEnabled}
-                videoEnabled={localState.videoEnabled || localState.screenSharing}
-                screenSharing={localState.screenSharing}
-                isLocal
-                className={cn("shrink-0", activePanel && "max-w-full max-h-full")}
-              />
-              {/* Remote peers */}
-              {peersArray.map((peer) => (
-                <VideoTile
-                  key={peer.userId}
-                  stream={peer.stream}
-                  displayName={peer.displayName}
-                  audioEnabled={peer.audioEnabled}
-                  videoEnabled={peer.videoEnabled}
-                  screenSharing={peer.screenSharing}
-                  className={cn("shrink-0", activePanel && "max-w-full max-h-full")}
-                />
-              ))}
+              <MessageSquare className="w-5 h-5" />
+            </button>
+
+            {/* Vertical menu dots */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button className="p-2 rounded-xl text-stone-300 hover:bg-white/5 cursor-pointer">
+                  <MoreVertical className="w-5 h-5" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="rounded-xl bg-[#111214] border border-white/5">
+                <DropdownMenuItem onSelect={handleCopyInviteLink}>Copy Invite Link</DropdownMenuItem>
+                <DropdownMenuItem onSelect={onLeave}>Leave Conference</DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            {/* Profile pic with status ring */}
+            <div className="relative">
+              <Avatar className="w-[36px] h-[36px] border border-white/10">
+                <AvatarImage src={localStorage.getItem(`user-avatar-${user.id}`) || user.user_metadata?.avatar_url || ""} className="object-cover object-[center_35%]" />
+                <AvatarFallback className="bg-[#FF6A2E] text-white text-xs font-bold">
+                  {getInitials(user.user_metadata?.display_name || user.username)}
+                </AvatarFallback>
+              </Avatar>
+              <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-500 rounded-full ring-2 ring-[#0B0C0E]" />
             </div>
+
+          </div>
+        </header>
+
+        {/* Main interactive area split into central display and right drawer panels */}
+        <div className="flex-1 flex overflow-hidden p-6 gap-6">
+          
+          {/* Main workspace layout: center display + bottom participant grid */}
+          <div className="flex-1 flex flex-col gap-6 overflow-hidden">
+            
+            {/* Massive central active speaker display box */}
+            <div className="flex-1 relative rounded-3xl overflow-hidden bg-gradient-to-br from-[#1A1B20] via-[#2F1F17] to-[#131416] border border-white/5 flex flex-col items-center justify-center">
+              
+              {/* Custom wavy lines decoration overlay (SVG) */}
+              <svg className="absolute inset-0 w-full h-full opacity-15 pointer-events-none" viewBox="0 0 800 500" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M-100 350C100 250 200 450 400 350C600 250 700 450 900 350" stroke="#FF6A2E" strokeWidth="3" />
+                <path d="M-100 380C100 280 200 480 400 380C600 280 700 480 900 380" stroke="#FF2E63" strokeWidth="2.5" />
+              </svg>
+
+              {/* Top left Tag: Connection quality */}
+              <div className="absolute top-4 left-4 flex items-center gap-2 py-1.5 px-3 rounded-full bg-[#111214]/80 backdrop-blur-md border border-white/5">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                <span className="text-xs font-semibold text-stone-200">High quality connection</span>
+                <Volume2 className="w-3.5 h-3.5 text-stone-400" />
+              </div>
+
+              {/* Top right Tag: Maximize toggle */}
+              <button 
+                onClick={() => toast.info("Cinematic fullscreen mode.")}
+                className="absolute top-4 right-4 p-2 rounded-full bg-[#111214]/80 backdrop-blur-md border border-white/5 hover:bg-white/10 text-stone-300 transition-colors cursor-pointer"
+              >
+                <Maximize2 className="w-4 h-4" />
+              </button>
+
+              {/* Render Center Content: Local User (Host) Camera Video or Initials Avatar */}
+              {localState.videoEnabled || localState.screenSharing ? (
+                <VideoTile
+                  stream={localState.screenSharing ? screenStream : localStream}
+                  displayName={displayName}
+                  audioEnabled={localState.audioEnabled}
+                  videoEnabled={localState.videoEnabled || localState.screenSharing}
+                  screenSharing={localState.screenSharing}
+                  isLocal
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="flex flex-col items-center z-10">
+                  {(localStorage.getItem(`user-avatar-${user.id}`) || user.user_metadata?.avatar_url) ? (
+                    <img 
+                      src={localStorage.getItem(`user-avatar-${user.id}`) || user.user_metadata?.avatar_url} 
+                      alt={displayName} 
+                      className="w-24 h-24 rounded-full object-cover object-[center_35%] border border-white/10 shadow-lg shadow-black/35 mb-4" 
+                    />
+                  ) : (
+                    <div className="w-24 h-24 rounded-full bg-gradient-to-br from-[#FF2E63] to-[#FF6A2E] flex items-center justify-center text-white text-3xl font-extrabold shadow-lg shadow-red-500/20 mb-4 select-none">
+                      {getInitials(displayName)}
+                    </div>
+                  )}
+                  <h3 className="text-2xl font-bold text-white tracking-tight">{displayName}</h3>
+                  <span className="text-xs font-bold text-stone-400 bg-white/5 py-1 px-3.5 rounded-full mt-2 select-none">
+                    Host (You)
+                  </span>
+                </div>
+              )}
+
+              {/* Bottom right overlay: Green/orange/pink audio level indicator bars connected to real-time voice volume */}
+              <div className="absolute bottom-4 right-4 flex items-end gap-1 h-8 px-3.5 bg-[#111214]/80 rounded-full border border-white/5 items-center justify-center z-10">
+                <div 
+                  className="w-1 bg-emerald-500 rounded-full transition-all duration-75" 
+                  style={{ height: `${Math.max(4, Math.min(16, 4 + audioLevel * 16))}px` }} 
+                />
+                <div 
+                  className="w-1 bg-emerald-500 rounded-full transition-all duration-75" 
+                  style={{ height: `${Math.max(4, Math.min(24, 4 + audioLevel * 24))}px` }} 
+                />
+                <div 
+                  className="w-1 bg-emerald-500 rounded-full transition-all duration-75" 
+                  style={{ height: `${Math.max(4, Math.min(20, 4 + audioLevel * 20))}px` }} 
+                />
+                <div 
+                  className="w-1 bg-[#FF6A2E] rounded-full transition-all duration-75" 
+                  style={{ height: `${Math.max(4, Math.min(28, 4 + audioLevel * 28))}px` }} 
+                />
+                <div 
+                  className="w-1 bg-[#FF2E63] rounded-full transition-all duration-75" 
+                  style={{ height: `${Math.max(4, Math.min(12, 4 + audioLevel * 12))}px` }} 
+                />
+              </div>
+            </div>
+
+            {/* Bottom Row of Participant Cards (Actual WebRTC remote peers) */}
+            {peersArray.length > 0 && (
+              <div className="flex gap-4 shrink-0 h-40 overflow-x-auto pb-2 w-full">
+
+                {/* Peers Cards */}
+                {peersArray.map((peer) => {
+                  const isSpotlighted = activePeer && activePeer.userId === peer.userId
+                  return (
+                    <div 
+                      key={peer.userId}
+                      className={cn(
+                        "relative w-64 rounded-2xl overflow-hidden bg-[#16171B] border border-white/5 flex items-center justify-center shrink-0 group cursor-pointer transition-all",
+                        isSpotlighted && "ring-2 ring-[#FF6A2E] shadow-lg shadow-red-500/5"
+                      )}
+                    >
+                      {peer.videoEnabled || peer.screenSharing ? (
+                        <VideoTile
+                          stream={peer.stream}
+                          displayName={peer.displayName}
+                          audioEnabled={peer.audioEnabled}
+                          videoEnabled={peer.videoEnabled}
+                          screenSharing={peer.screenSharing}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="absolute inset-0 bg-[#16171B] flex items-center justify-center">
+                          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#FF2E63] to-[#FF6A2E] flex items-center justify-center text-white text-base font-bold">
+                            {getInitials(peer.displayName)}
+                          </div>
+                        </div>
+                      )}
+                      {/* Header Menu */}
+                      <button className="absolute top-2 right-2 p-1 rounded-full bg-black/40 text-stone-400 hover:text-white cursor-pointer z-10">
+                        <MoreHorizontal className="w-3.5 h-3.5" />
+                      </button>
+                      {/* Footer Mic tag */}
+                      <div className="absolute bottom-2.5 left-2.5 right-2.5 flex items-center gap-1.5 py-1 px-2.5 bg-black/60 backdrop-blur-md rounded-lg z-10 w-fit">
+                        {peer.audioEnabled ? (
+                          <Mic className="w-3 h-3 text-emerald-400" />
+                        ) : (
+                          <MicOff className="w-3 h-3 text-[#FF4A16]" />
+                        )}
+                        <span className="text-[11px] font-bold text-white truncate max-w-[130px]">
+                          {peer.displayName}
+                        </span>
+                      </div>
+                    </div>
+                  )
+                })}
+
+              </div>
+            )}
+
           </div>
 
-          {/* Side panel */}
+          {/* Right Drawers (Chat & Whiteboard panels) */}
           {activePanel && (
             <div
               className={cn(
-                "flex-1 flex flex-col overflow-hidden",
-                "sm:flex-none sm:w-80 sm:border-l sm:border-border",
-                activePanel === "whiteboard" && "sm:w-96"
+                "flex-none w-85 h-full overflow-hidden flex flex-col bg-[#121214] border border-white/5 rounded-3xl shrink-0 z-10",
+                activePanel === "whiteboard" && "w-96"
               )}
             >
-              <div className="flex items-center justify-between px-4 py-3.5 border-b border-slate-150 bg-white shrink-0">
-                <div className="flex items-center gap-2">
-                  {activePanel === "chat" ? (
-                    <>
-                      <MessageSquare className="w-4.5 h-4.5 text-slate-800" />
-                      <span className="text-sm font-bold text-slate-900">Chat & Files</span>
-                    </>
-                  ) : (
-                    <>
-                      <PenLine className="w-4.5 h-4.5 text-slate-800" />
-                      <span className="text-sm font-bold text-slate-900">Whiteboard</span>
-                      <Badge className="text-xs bg-emerald-500/10 text-emerald-600 border-emerald-500/20 hover:bg-emerald-500/10">Live</Badge>
-                    </>
-                  )}
+              {/* Right Panel Header */}
+              <div className="flex items-center justify-between px-5 py-4 border-b border-white/5 bg-[#121214] shrink-0">
+                <div className="flex items-center gap-6">
+                  <button 
+                    onClick={() => setActivePanel("chat")}
+                    className={cn(
+                      "text-base font-bold transition-all relative pb-1 cursor-pointer",
+                      activePanel === "chat" ? "text-white" : "text-stone-500 hover:text-stone-300"
+                    )}
+                  >
+                    Chat
+                    {activePanel === "chat" && (
+                      <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#FF6A2E] rounded-full" />
+                    )}
+                  </button>
+                  <button 
+                    onClick={() => setActivePanel("files")}
+                    className={cn(
+                      "text-base font-bold transition-all relative pb-1 cursor-pointer",
+                      activePanel === "files" ? "text-white" : "text-stone-500 hover:text-stone-300"
+                    )}
+                  >
+                    Files
+                    {activePanel === "files" && (
+                      <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#FF6A2E] rounded-full" />
+                    )}
+                  </button>
                 </div>
                 <button
-                  className="h-6 w-6 rounded-md flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-all border-none bg-transparent cursor-pointer font-bold text-lg leading-none"
+                  className="h-7 w-7 rounded-lg flex items-center justify-center text-stone-500 hover:text-white hover:bg-white/5 transition-all border-none bg-transparent cursor-pointer"
                   onClick={() => setActivePanel(null)}
                 >
-                  ×
+                  <X className="w-5 h-5" />
                 </button>
               </div>
+
+              {/* Panel Content Body */}
               <div className="flex-1 flex flex-col overflow-hidden">
                 {activePanel === "chat" ? (
-                  <ChatPanel roomId={roomId} user={user} />
+                  <ChatPanel roomId={roomId} user={user} mode="chat" />
+                ) : activePanel === "files" ? (
+                  <ChatPanel roomId={roomId} user={user} mode="files" />
                 ) : (
                   <Whiteboard roomId={roomId} user={user} />
                 )}
               </div>
             </div>
           )}
+
         </div>
 
-        {/* Controls bar */}
-        <div className="shrink-0 flex items-center gap-3 px-6 py-4 bg-[#17181C] border-t border-white/5 text-white">
-          {/* Left / Center Actions */}
-          <div className="flex items-center gap-3">
-            {/* Audio Toggle */}
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button
-                  onClick={toggleAudio}
-                  className={cn(
-                    "w-11 h-11 rounded-full flex items-center justify-center cursor-pointer transition-colors border-none",
-                    localState.audioEnabled ? "bg-[#26272C] hover:bg-[#33343a] text-white" : "bg-destructive text-white"
-                  )}
-                >
-                  {localState.audioEnabled ? <Mic className="w-5 h-5" /> : <MicOff className="w-5 h-5" />}
-                </button>
-              </TooltipTrigger>
-              <TooltipContent>{localState.audioEnabled ? "Mute" : "Unmute"}</TooltipContent>
-            </Tooltip>
+        {/* Controls bar at bottom */}
+        <div className="shrink-0 h-28 flex items-center justify-center bg-[#0B0C0E] border-t border-white/5 z-20 select-none">
+          <div className="flex items-center gap-7">
+            
+            {/* Mic control */}
+            <div className="flex flex-col items-center gap-2">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div className="flex items-center gap-0">
+                    <button
+                      onClick={toggleAudio}
+                      className={cn(
+                        "w-12 h-12 rounded-l-2xl flex items-center justify-center cursor-pointer transition-colors border-y border-l border-white/5 text-white",
+                        localState.audioEnabled ? "bg-[#16171B] hover:bg-[#202127]" : "bg-red-600 hover:bg-red-700"
+                      )}
+                    >
+                      {localState.audioEnabled ? <Mic className="w-5 h-5 text-white" /> : <MicOff className="w-5 h-5 text-white" />}
+                    </button>
+                    <button 
+                      onClick={() => toast.info("Microphone input sources options.")}
+                      className="w-8 h-12 rounded-r-2xl bg-[#16171B] hover:bg-[#202127] border-y border-r border-white/5 text-stone-400 hover:text-white flex items-center justify-center cursor-pointer"
+                    >
+                      <ChevronDown className="w-4 h-4" />
+                    </button>
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent>Microphone settings</TooltipContent>
+              </Tooltip>
+              <span className="text-[11px] font-bold text-stone-400">Mic</span>
+            </div>
 
-            {/* Video Toggle */}
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button
-                  onClick={toggleVideo}
-                  className={cn(
-                    "w-11 h-11 rounded-full flex items-center justify-center cursor-pointer transition-colors border-none",
-                    localState.videoEnabled ? "bg-[#26272C] hover:bg-[#33343a] text-white" : "bg-destructive text-white"
-                  )}
-                >
-                  {localState.videoEnabled ? <Video className="w-5 h-5" /> : <VideoOff className="w-5 h-5" />}
-                </button>
-              </TooltipTrigger>
-              <TooltipContent>{localState.videoEnabled ? "Stop Video" : "Start Video"}</TooltipContent>
-            </Tooltip>
+            {/* Camera control */}
+            <div className="flex flex-col items-center gap-2">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    onClick={toggleVideo}
+                    className={cn(
+                      "w-12 h-12 rounded-2xl flex items-center justify-center cursor-pointer transition-colors border border-white/5 text-white",
+                      localState.videoEnabled ? "bg-[#16171B] hover:bg-[#202127]" : "bg-red-600 hover:bg-red-700"
+                    )}
+                  >
+                    {localState.videoEnabled ? <VideoIcon className="w-5 h-5 text-white" /> : <VideoOff className="w-5 h-5 text-white" />}
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent>Camera settings</TooltipContent>
+              </Tooltip>
+              <span className="text-[11px] font-bold text-stone-400">Camera</span>
+            </div>
 
-            {/* Screen Share Toggle */}
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button
-                  onClick={handleScreenShare}
-                  className={cn(
-                    "w-11 h-11 rounded-full flex items-center justify-center cursor-pointer transition-colors border-none",
-                    localState.screenSharing ? "bg-gradient-to-r from-orange-500 to-red-500 text-white" : "bg-[#26272C] hover:bg-[#33343a] text-white"
-                  )}
-                >
-                  {localState.screenSharing ? <MonitorOff className="w-5 h-5" /> : <Monitor className="w-5 h-5" />}
-                </button>
-              </TooltipTrigger>
-              <TooltipContent>{localState.screenSharing ? "Stop Sharing" : "Share Screen"}</TooltipContent>
-            </Tooltip>
+            {/* Screen Share control */}
+            <div className="flex flex-col items-center gap-2">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    onClick={handleScreenShare}
+                    className={cn(
+                      "w-12 h-12 rounded-2xl flex items-center justify-center cursor-pointer transition-colors border border-white/5 text-white",
+                      localState.screenSharing ? "bg-gradient-to-br from-[#FF6A2E] to-[#FF2E63]" : "bg-[#16171B] hover:bg-[#202127]"
+                    )}
+                  >
+                    {localState.screenSharing ? <MonitorOff className="w-5 h-5 text-white" /> : <Monitor className="w-5 h-5 text-white" />}
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent>Share screen</TooltipContent>
+              </Tooltip>
+              <span className="text-[11px] font-bold text-stone-400">Screen</span>
+            </div>
 
-            {/* Chat Toggle */}
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button
-                  onClick={() => togglePanel("chat")}
-                  className={cn(
-                    "w-11 h-11 rounded-full flex items-center justify-center cursor-pointer transition-colors border-none",
-                    activePanel === "chat" ? "bg-gradient-to-r from-orange-500 to-red-500 text-white" : "bg-[#26272C] hover:bg-[#33343a] text-white"
-                  )}
-                >
-                  <MessageSquare className="w-5 h-5" />
-                </button>
-              </TooltipTrigger>
-              <TooltipContent>Chat & Files</TooltipContent>
-            </Tooltip>
+            {/* Chat toggle */}
+            <div className="flex flex-col items-center gap-2">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    onClick={() => togglePanel("chat")}
+                    className={cn(
+                      "w-12 h-12 rounded-2xl flex items-center justify-center cursor-pointer transition-colors border border-white/5 text-white",
+                      activePanel === "chat" ? "bg-[#FF6A2E]/25 text-[#FF6A2E]" : "bg-[#16171B] hover:bg-[#202127]"
+                    )}
+                  >
+                    <MessageSquare className="w-5 h-5" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent>Toggle Chat panel</TooltipContent>
+              </Tooltip>
+              <span className="text-[11px] font-bold text-stone-400">Chat</span>
+            </div>
 
-            {/* Whiteboard Toggle */}
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button
-                  onClick={() => togglePanel("whiteboard")}
-                  className={cn(
-                    "w-11 h-11 rounded-full flex items-center justify-center cursor-pointer transition-colors border-none",
-                    activePanel === "whiteboard" ? "bg-gradient-to-r from-orange-500 to-red-500 text-white" : "bg-[#26272C] hover:bg-[#33343a] text-white"
-                  )}
-                >
-                  <PenLine className="w-5 h-5" />
-                </button>
-              </TooltipTrigger>
-              <TooltipContent>Whiteboard</TooltipContent>
-            </Tooltip>
+            {/* Hand raise */}
+            <div className="flex flex-col items-center gap-2">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    onClick={() => {
+                      setHandRaised(!handRaised)
+                      toast.success(handRaised ? "Hand lowered" : "Hand raised")
+                    }}
+                    className={cn(
+                      "w-12 h-12 rounded-2xl flex items-center justify-center cursor-pointer transition-colors border border-white/5 text-white",
+                      handRaised ? "bg-amber-500 text-stone-950" : "bg-[#16171B] hover:bg-[#202127]"
+                    )}
+                  >
+                    <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M18 11V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v5" />
+                      <path d="M14 10V4a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v8" />
+                      <path d="M10 10.5V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v9" />
+                      <path d="M6 14.5V11a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v7.5a6.5 6.5 0 0 0 13 0v-4" />
+                    </svg>
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent>{handRaised ? "Lower Hand" : "Raise Hand"}</TooltipContent>
+              </Tooltip>
+              <span className="text-[11px] font-bold text-stone-400">Raise Hand</span>
+            </div>
 
-            {/* Rotated Hangup Phone Button */}
+            {/* Rotated Hangup Button (Center anchor) */}
             <Tooltip>
               <TooltipTrigger asChild>
                 <button 
                   onClick={onLeave} 
                   style={{ 
-                    width: '76px', 
-                    height: '46px', 
-                    borderRadius: '999px', 
+                    width: '68px', 
+                    height: '68px', 
+                    borderRadius: '50%', 
                     background: 'linear-gradient(150deg, #FF4A16, #E52603)', 
                     display: 'flex', 
                     alignItems: 'center', 
                     justifyContent: 'center', 
-                    marginLeft: '14px', 
                     cursor: 'pointer', 
-                    boxShadow: '0 6px 16px rgba(229,38,3,0.4)', 
-                    transition: 'all 0.2s', 
+                    boxShadow: '0 8px 24px rgba(229,38,3,0.3)', 
                     border: 'none' 
                   }} 
-                  className="hover:brightness-110 active:scale-95 shrink-0"
+                  className="hover:scale-105 active:scale-95 transition-all text-white shrink-0"
                 >
-                  <PhoneOff style={{ transform: 'rotate(135deg)', transformOrigin: 'center' }} className="w-5 h-5 text-white" />
+                  <PhoneOff style={{ transform: 'rotate(135deg)', transformOrigin: 'center' }} className="w-6 h-6 text-white" />
                 </button>
               </TooltipTrigger>
-              <TooltipContent>Leave Room</TooltipContent>
+              <TooltipContent>Leave conference</TooltipContent>
             </Tooltip>
-          </div>
 
-          <div className="flex-grow"></div>
+            {/* Mock Record */}
+            <div className="flex flex-col items-center gap-2">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    onClick={() => {
+                      setIsRecording(!isRecording)
+                      toast.info(isRecording ? "Recording saved to Recordings" : "Recording started successfully")
+                    }}
+                    className={cn(
+                      "w-12 h-12 rounded-2xl flex items-center justify-center cursor-pointer transition-colors border border-white/5 text-white",
+                      isRecording ? "bg-red-600 animate-pulse text-white" : "bg-[#16171B] hover:bg-[#202127]"
+                    )}
+                  >
+                    <Circle className={cn("w-5 h-5", isRecording ? "fill-white stroke-white" : "stroke-stone-400")} />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent>{isRecording ? "Stop recording" : "Record meeting"}</TooltipContent>
+              </Tooltip>
+              <span className="text-[11px] font-bold text-stone-400">Record</span>
+            </div>
 
-          {/* Right side items */}
-          <div className="flex items-center gap-5.5 text-slate-400">
-            {/* Grid Layout Icon */}
-            <svg className="cursor-pointer hover:text-white transition-colors" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinejoin="round">
-              <rect x="3" y="3" width="7" height="7" rx="1.5"></rect>
-              <rect x="14" y="3" width="7" height="7" rx="1.5"></rect>
-              <rect x="3" y="14" width="7" height="7" rx="1.5"></rect>
-              <rect x="14" y="14" width="7" height="7" rx="1.5"></rect>
-            </svg>
+            {/* Reactions toggle */}
+            <div className="flex flex-col items-center gap-2">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    onClick={() => toast.info("Select reaction: 👍 ❤️ 🔥 🎉")}
+                    className="w-12 h-12 rounded-2xl bg-[#16171B] hover:bg-[#202127] flex items-center justify-center cursor-pointer border border-white/5 text-white"
+                  >
+                    <Smile className="w-5 h-5 text-stone-400" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent>Send reactions</TooltipContent>
+              </Tooltip>
+              <span className="text-[11px] font-bold text-stone-400">Reactions</span>
+            </div>
 
-            {/* Record Icon */}
-            <svg className="cursor-pointer hover:brightness-110 transition-all" width="20" height="20" viewBox="0 0 24 24" fill="none">
-              <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="2"></circle>
-              <circle cx="12" cy="12" r="4" fill="#F42B03"></circle>
-            </svg>
+            {/* More options */}
+            <div className="flex flex-col items-center gap-2">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button className="w-12 h-12 rounded-2xl bg-[#16171B] hover:bg-[#202127] flex items-center justify-center cursor-pointer border border-white/5 text-white">
+                    <MoreHorizontal className="w-5 h-5 text-stone-400" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="rounded-xl bg-[#111214] border border-white/5 text-white">
+                  <DropdownMenuItem onSelect={() => setActivePanel(activePanel === "whiteboard" ? null : "whiteboard")} className="cursor-pointer">
+                    <PenLine className="w-4 h-4 mr-2" />
+                    Toggle Whiteboard
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onSelect={() => toast.info("Virtual backgrounds coming soon.")} className="cursor-pointer">
+                    Virtual Background
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onSelect={() => toast.info("Meeting security configuration.")} className="cursor-pointer">
+                    Meeting Settings
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+              <span className="text-[11px] font-bold text-stone-400">More</span>
+            </div>
 
-            {/* Security Shield Icon */}
-            <svg className="cursor-pointer hover:text-white transition-colors" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"></path>
-            </svg>
           </div>
         </div>
+
       </div>
     </div>
   )

@@ -5,7 +5,9 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { toast } from "sonner"
+import { Camera } from "lucide-react"
 
 type Props = {
   user: AuthUser
@@ -17,6 +19,21 @@ export default function SettingsDialog({ user, open, onOpenChange }: Props) {
   const [displayName, setDisplayName] = useState(user.user_metadata?.display_name || "")
   const [email, setEmail] = useState(user.email)
   const [savingProfile, setSavingProfile] = useState(false)
+  const [avatarUrl, setAvatarUrl] = useState(user.user_metadata?.avatar_url || "")
+
+  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error("Image file is too large (max 2MB)")
+      return
+    }
+    const reader = new FileReader()
+    reader.onloadend = () => {
+      setAvatarUrl(reader.result as string)
+    }
+    reader.readAsDataURL(file)
+  }
 
   const [currentPassword, setCurrentPassword] = useState("")
   const [newPassword, setNewPassword] = useState("")
@@ -32,6 +49,7 @@ export default function SettingsDialog({ user, open, onOpenChange }: Props) {
     setSavingProfile(true)
     try {
       await api.updateProfile(displayName.trim(), email.trim())
+      localStorage.setItem(`user-avatar-${user.id}`, avatarUrl)
       toast.success("Profile updated")
       window.dispatchEvent(new Event("auth-changed"))
     } catch (error: any) {
@@ -76,6 +94,41 @@ export default function SettingsDialog({ user, open, onOpenChange }: Props) {
 
           <TabsContent value="profile">
             <form onSubmit={handleProfileSubmit} className="space-y-4 pt-2">
+              
+              {/* Avatar Selector UI */}
+              <div className="flex flex-col items-center gap-3 pb-2">
+                <div className="relative group select-none">
+                  <Avatar className="w-20 h-20 border border-stone-200 dark:border-stone-800 shadow-sm">
+                    <AvatarImage src={avatarUrl} className="object-cover object-[center_35%]" />
+                    <AvatarFallback className="bg-gradient-to-br from-[#FF6A2E] to-[#FF2E63] text-white text-2xl font-bold">
+                      {displayName ? displayName.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2) : "JD"}
+                    </AvatarFallback>
+                  </Avatar>
+                  <label 
+                    htmlFor="avatar-upload" 
+                    className="absolute inset-0 flex items-center justify-center bg-black/45 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                  >
+                    <Camera className="w-5 h-5" />
+                  </label>
+                  <input 
+                    type="file" 
+                    id="avatar-upload" 
+                    accept="image/*" 
+                    onChange={handleAvatarChange} 
+                    className="hidden" 
+                  />
+                </div>
+                {avatarUrl && (
+                  <button 
+                    type="button" 
+                    onClick={() => setAvatarUrl("")}
+                    className="text-xs text-red-500 hover:text-red-600 font-semibold cursor-pointer"
+                  >
+                    Remove Photo
+                  </button>
+                )}
+              </div>
+
               <div className="space-y-2">
                 <Label htmlFor="settings-name">Display Name</Label>
                 <Input
