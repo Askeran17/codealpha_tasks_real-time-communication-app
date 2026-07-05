@@ -62,7 +62,7 @@ class RecordingSerializer(serializers.ModelSerializer):
         return None
 
 class ScheduledMeetingSerializer(serializers.ModelSerializer):
-    room_id = serializers.ReadOnlyField(source='room.id')
+    room_id = serializers.UUIDField(source='room.id', read_only=True)
     room_name = serializers.ReadOnlyField(source='room.name')
     room_description = serializers.ReadOnlyField(source='room.description')
     created_by_name = serializers.ReadOnlyField(source='created_by.username')

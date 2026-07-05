@@ -2,8 +2,9 @@ from django.contrib.auth.models import User
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db import IntegrityError
 from django.test import TestCase
+from django.utils import timezone
 
-from ..models import Message, Room, RoomParticipant, SharedFile
+from ..models import Message, Recording, Room, RoomParticipant, ScheduledMeeting, SharedFile
 
 
 class RoomModelTests(TestCase):
@@ -19,6 +20,10 @@ class RoomModelTests(TestCase):
         room.refresh_from_db()
 
         self.assertIsNone(room.created_by)
+
+    def test_pinned_defaults_to_false(self):
+        room = Room.objects.create(name='Unpinned Room')
+        self.assertFalse(room.pinned)
 
 
 class RoomParticipantModelTests(TestCase):
@@ -75,3 +80,93 @@ class SharedFileModelTests(TestCase):
         )
 
         self.assertEqual(str(shared_file), 'File doc.txt in File Room')
+
+
+class RecordingModelTests(TestCase):
+    def test_str_includes_room_name_and_timestamp(self):
+        user = User.objects.create_user(username='recorder', password='pw123456')
+        room = Room.objects.create(name='Standup Room')
+        upload = SimpleUploadedFile('call.webm', b'encrypted-bytes', content_type='application/octet-stream')
+
+        recording = Recording.objects.create(
+            room=room, created_by=user, display_name='Recording - today',
+            file=upload, file_size=15, mime_type='video/webm', iv='iv-value', duration_seconds=42
+        )
+
+        self.assertIn('Standup Room', str(recording))
+
+    def test_duration_seconds_defaults_to_zero(self):
+        user = User.objects.create_user(username='recorder', password='pw123456')
+        room = Room.objects.create(name='Standup Room')
+        upload = SimpleUploadedFile('call.webm', b'x', content_type='application/octet-stream')
+
+        recording = Recording.objects.create(
+            room=room, created_by=user, display_name='Recording', file=upload,
+            file_size=1, mime_type='video/webm',
+        )
+
+        self.assertEqual(recording.duration_seconds, 0)
+
+    def test_deleting_room_cascades_to_recordings(self):
+        user = User.objects.create_user(username='recorder', password='pw123456')
+        room = Room.objects.create(name='Standup Room')
+        upload = SimpleUploadedFile('call.webm', b'x', content_type='application/octet-stream')
+        Recording.objects.create(
+            room=room, created_by=user, display_name='Recording', file=upload,
+            file_size=1, mime_type='video/webm',
+        )
+
+        room.delete()
+
+        self.assertEqual(Recording.objects.count(), 0)
+
+    def test_deleting_creator_cascades_to_recordings(self):
+        # Unlike Room.created_by (SET_NULL), a Recording is worthless without
+        # its owner, so it cascades — there's no "orphaned recording" concept.
+        user = User.objects.create_user(username='recorder', password='pw123456')
+        room = Room.objects.create(name='Standup Room')
+        upload = SimpleUploadedFile('call.webm', b'x', content_type='application/octet-stream')
+        Recording.objects.create(
+            room=room, created_by=user, display_name='Recording', file=upload,
+            file_size=1, mime_type='video/webm',
+        )
+
+        user.delete()
+
+        self.assertEqual(Recording.objects.count(), 0)
+
+
+class ScheduledMeetingModelTests(TestCase):
+    def test_str_includes_room_name_and_schedule(self):
+        user = User.objects.create_user(username='organizer', password='pw123456')
+        room = Room.objects.create(name='Design Sync')
+        scheduled_at = timezone.now()
+
+        meeting = ScheduledMeeting.objects.create(room=room, created_by=user, scheduled_at=scheduled_at)
+
+        self.assertIn('Design Sync', str(meeting))
+
+    def test_duration_minutes_defaults_to_sixty(self):
+        user = User.objects.create_user(username='organizer', password='pw123456')
+        room = Room.objects.create(name='Design Sync')
+
+        meeting = ScheduledMeeting.objects.create(room=room, created_by=user, scheduled_at=timezone.now())
+
+        self.assertEqual(meeting.duration_minutes, 60)
+
+    def test_room_can_only_have_one_scheduled_meeting(self):
+        user = User.objects.create_user(username='organizer', password='pw123456')
+        room = Room.objects.create(name='Design Sync')
+        ScheduledMeeting.objects.create(room=room, created_by=user, scheduled_at=timezone.now())
+
+        with self.assertRaises(IntegrityError):
+            ScheduledMeeting.objects.create(room=room, created_by=user, scheduled_at=timezone.now())
+
+    def test_deleting_room_cascades_to_scheduled_meeting(self):
+        user = User.objects.create_user(username='organizer', password='pw123456')
+        room = Room.objects.create(name='Design Sync')
+        ScheduledMeeting.objects.create(room=room, created_by=user, scheduled_at=timezone.now())
+
+        room.delete()
+
+        self.assertEqual(ScheduledMeeting.objects.count(), 0)

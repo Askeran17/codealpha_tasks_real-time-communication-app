@@ -14,6 +14,11 @@ Real-time app is a secure, real-time video calling and collaboration platform bu
 * **Screen Sharing:** Instant screen sharing directly integrated into WebRTC peer tracks.
 * **End-to-End Encrypted Chat:** Private text chat secured client-side via **AES-GCM (256-bit)**. Keys are derived dynamically using the Web Crypto API based on the Room ID, ensuring the server only sees encrypted ciphertexts.
 * **Secure File Sharing:** Files are encrypted client-side before upload, stored securely on the backend, and decrypted dynamically upon download by valid room participants.
+* **Encrypted Call Recording:** Records the call client-side by compositing the video grid onto a canvas and mixing every participant's audio, then encrypts the result with the same AES-GCM room key before upload — playback decrypts it again on demand from the Recordings tab.
+* **Calendar & Scheduled Meetings:** Schedule meetings for a real date/time; they appear on a real calendar grid and as a room you can join early or cancel.
+* **Contacts Directory:** A searchable directory of every registered user, with one click to start an encrypted call and share the invite link.
+* **Pinnable Dashboard Rooms:** Pin any room to feature it on the dashboard as a live-status card, with real per-user room statistics (scheduled / instant / pinned).
+* **In-Call Reactions & Raise Hand:** Emoji reactions and hand-raise state are broadcast to every participant in real time over the room's WebSocket channel.
 * **Live Synchronized Whiteboard:** A multiplayer canvas enabling collaborative drawing and writing synchronized in real-time via WebSockets.
 * **Secure Authentication:** User sign-up and log-in powered by Django REST Framework Token Authentication.
 
@@ -27,11 +32,19 @@ Real-time app is a secure, real-time video calling and collaboration platform bu
 
 ### Screenshots
 
-| Sign In / Sign Up | Dashboard / Home Page |
+| Sign In / Sign Up | Dashboard (pinned room + real stats) |
 |---|---|
 | ![Authentication Screen](public/screenshot-auth.png) | ![Home Screen](public/screenshot-home.png) |
 
-| Room Chat (End-to-End Encrypted) |
+| Calendar (real scheduled meetings) | Contacts Directory |
+|---|---|
+| ![Calendar Screen](public/screenshot-calendar.png) | ![Contacts Screen](public/screenshot-contacts.png) |
+
+| Recordings (encrypted playback) | In-Call Reactions & Raise Hand |
+|---|---|
+| ![Recordings Screen](public/screenshot-recordings.png) | ![Room reactions screen](public/screenshot-room-reaction.png) |
+
+| Room (End-to-End Encrypted) |
 |---|
 | ![Room Chat Screen](public/screenshot-room.png) |
 
@@ -101,7 +114,7 @@ To run this project locally, you will need to start both the React frontend and 
 ## ✅ Testing
 
 ### Backend (Django)
-34 tests covering models, serializers, REST views, and the WebSocket consumer (auth handshake, chat persistence, signalling relay).
+79 tests covering models, serializers, REST views, and the WebSocket consumer (auth handshake, chat persistence, signalling relay) — including the Recording and ScheduledMeeting models/endpoints, the Contacts directory endpoint, and pinning a room.
 
 ```bash
 cd backend
@@ -110,7 +123,7 @@ python manage.py test
 ```
 
 ### Frontend (Vitest)
-18 unit tests covering the AES-GCM encryption helpers (`src/lib/crypto.ts`), the API client (`src/lib/api.ts`), and utility functions (`src/lib/utils.ts`).
+35 unit tests covering the AES-GCM encryption helpers (`src/lib/crypto.ts`), the API client (`src/lib/api.ts` — including the meetings/recordings/contacts/pin endpoints), utility functions (`src/lib/utils.ts`), and the call-recorder's browser-support detection (`src/hooks/use-call-recorder.ts`).
 
 ```bash
 npm run test        # single run

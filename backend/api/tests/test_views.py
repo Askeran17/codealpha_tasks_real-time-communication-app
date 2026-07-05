@@ -2,11 +2,12 @@ from django.contrib.auth.models import User
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase
 from django.urls import reverse
+from django.utils import timezone
 from rest_framework import status
 from rest_framework.authtoken.models import Token
 from rest_framework.test import APIClient
 
-from ..models import Message, Room, SharedFile
+from ..models import Message, Recording, Room, ScheduledMeeting, SharedFile
 
 
 class AuthViewTests(TestCase):
@@ -253,6 +254,36 @@ class RoomViewTests(TestCase):
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
         self.assertTrue(Room.objects.filter(id=room.id).exists())
 
+    def test_owner_can_pin_room(self):
+        room = Room.objects.create(name='Pinnable Room', created_by=self.user)
+
+        self.authenticate(self.token)
+        response = self.client.patch(reverse('room-detail', args=[room.id]), {'pinned': True}, format='json')
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        room.refresh_from_db()
+        self.assertTrue(room.pinned)
+
+    def test_owner_can_unpin_room(self):
+        room = Room.objects.create(name='Pinned Room', created_by=self.user, pinned=True)
+
+        self.authenticate(self.token)
+        response = self.client.patch(reverse('room-detail', args=[room.id]), {'pinned': False}, format='json')
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        room.refresh_from_db()
+        self.assertFalse(room.pinned)
+
+    def test_non_owner_cannot_pin_room(self):
+        room = Room.objects.create(name='Protected Room', created_by=self.user)
+
+        self.authenticate(self.other_token)
+        response = self.client.patch(reverse('room-detail', args=[room.id]), {'pinned': True}, format='json')
+
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        room.refresh_from_db()
+        self.assertFalse(room.pinned)
+
 
 class RoomMessagesViewTests(TestCase):
     def setUp(self):
@@ -349,3 +380,247 @@ class RoomFilesViewTests(TestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         returned_ids = [item['id'] for item in response.data]
         self.assertEqual(returned_ids, [str(second.id), str(first.id)])
+
+
+class UserListViewTests(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+        self.user = User.objects.create_user(username='alice@example.com', password='pw123456', first_name='Alice')
+        self.other = User.objects.create_user(username='bob@example.com', password='pw123456', first_name='Bob')
+        self.token = Token.objects.create(user=self.user)
+        self.client.credentials(HTTP_AUTHORIZATION='Token ' + self.token.key)
+
+    def test_lists_other_users_but_excludes_self(self):
+        response = self.client.get(reverse('user-list'))
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        usernames = [u['username'] for u in response.data]
+        self.assertIn('bob@example.com', usernames)
+        self.assertNotIn('alice@example.com', usernames)
+
+    def test_search_filters_by_username_or_display_name(self):
+        response = self.client.get(reverse('user-list'), {'search': 'Bob'})
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        usernames = [u['username'] for u in response.data]
+        self.assertEqual(usernames, ['bob@example.com'])
+
+    def test_search_with_no_matches_returns_empty(self):
+        response = self.client.get(reverse('user-list'), {'search': 'nobody-like-this'})
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data, [])
+
+    def test_requires_authentication(self):
+        self.client.credentials()
+        response = self.client.get(reverse('user-list'))
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+
+class RoomRecordingsViewTests(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+        self.user = User.objects.create_user(username='recorder', password='pw123456')
+        self.token = Token.objects.create(user=self.user)
+        self.room = Room.objects.create(name='Call Room', created_by=self.user)
+        self.client.credentials(HTTP_AUTHORIZATION='Token ' + self.token.key)
+
+    def test_upload_recording(self):
+        upload = SimpleUploadedFile('call.webm', b'encrypted-bytes', content_type='application/octet-stream')
+
+        response = self.client.post(reverse('room-recordings', args=[self.room.id]), {
+            'file': upload,
+            'display_name': 'Recording - today',
+            'file_size': 16,
+            'mime_type': 'video/webm',
+            'iv': 'some-iv',
+            'duration_seconds': 42,
+        }, format='multipart')
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(Recording.objects.count(), 1)
+        self.assertEqual(response.data['duration_seconds'], 42)
+        self.assertIsNotNone(response.data['file_url'])
+
+    def test_upload_recording_missing_fields_returns_400(self):
+        response = self.client.post(reverse('room-recordings', args=[self.room.id]), {
+            'display_name': 'Recording',
+        }, format='multipart')
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(Recording.objects.count(), 0)
+
+    def test_upload_recording_for_missing_room_returns_404(self):
+        upload = SimpleUploadedFile('call.webm', b'x', content_type='application/octet-stream')
+
+        response = self.client.post(
+            reverse('room-recordings', args=['00000000-0000-0000-0000-000000000000']), {
+                'file': upload,
+                'display_name': 'Recording',
+                'file_size': 1,
+                'mime_type': 'video/webm',
+                'iv': 'some-iv',
+            }, format='multipart')
+
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_lists_recordings_newest_first(self):
+        upload_a = SimpleUploadedFile('a.webm', b'aaa', content_type='application/octet-stream')
+        upload_b = SimpleUploadedFile('b.webm', b'bbb', content_type='application/octet-stream')
+        first = Recording.objects.create(
+            room=self.room, created_by=self.user, display_name='First',
+            file=upload_a, file_size=3, mime_type='video/webm',
+        )
+        second = Recording.objects.create(
+            room=self.room, created_by=self.user, display_name='Second',
+            file=upload_b, file_size=3, mime_type='video/webm',
+        )
+
+        response = self.client.get(reverse('room-recordings', args=[self.room.id]))
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        returned_ids = [item['id'] for item in response.data]
+        self.assertEqual(returned_ids, [str(second.id), str(first.id)])
+
+
+class RecordingListViewTests(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+        self.user = User.objects.create_user(username='owner', password='pw123456')
+        self.other_user = User.objects.create_user(username='someone_else', password='pw123456')
+        self.token = Token.objects.create(user=self.user)
+        self.room = Room.objects.create(name='Shared Room', created_by=self.user)
+
+    def test_only_returns_own_recordings(self):
+        upload_a = SimpleUploadedFile('mine.webm', b'aaa', content_type='application/octet-stream')
+        upload_b = SimpleUploadedFile('theirs.webm', b'bbb', content_type='application/octet-stream')
+        Recording.objects.create(
+            room=self.room, created_by=self.user, display_name='Mine',
+            file=upload_a, file_size=3, mime_type='video/webm',
+        )
+        Recording.objects.create(
+            room=self.room, created_by=self.other_user, display_name='Theirs',
+            file=upload_b, file_size=3, mime_type='video/webm',
+        )
+
+        self.client.credentials(HTTP_AUTHORIZATION='Token ' + self.token.key)
+        response = self.client.get(reverse('recording-list'))
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        names = [r['display_name'] for r in response.data]
+        self.assertIn('Mine', names)
+        self.assertNotIn('Theirs', names)
+
+    def test_requires_authentication(self):
+        response = self.client.get(reverse('recording-list'))
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+
+class RecordingDetailViewTests(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+        self.user = User.objects.create_user(username='owner', password='pw123456')
+        self.other_user = User.objects.create_user(username='intruder', password='pw123456')
+        self.token = Token.objects.create(user=self.user)
+        self.other_token = Token.objects.create(user=self.other_user)
+        self.room = Room.objects.create(name='Call Room', created_by=self.user)
+        upload = SimpleUploadedFile('call.webm', b'encrypted-bytes', content_type='application/octet-stream')
+        self.recording = Recording.objects.create(
+            room=self.room, created_by=self.user, display_name='Recording',
+            file=upload, file_size=15, mime_type='video/webm',
+        )
+
+    def test_owner_can_delete_recording(self):
+        self.client.credentials(HTTP_AUTHORIZATION='Token ' + self.token.key)
+        response = self.client.delete(reverse('recording-detail', args=[self.recording.id]))
+
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertFalse(Recording.objects.filter(id=self.recording.id).exists())
+
+    def test_non_owner_cannot_delete_recording(self):
+        self.client.credentials(HTTP_AUTHORIZATION='Token ' + self.other_token.key)
+        response = self.client.delete(reverse('recording-detail', args=[self.recording.id]))
+
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertTrue(Recording.objects.filter(id=self.recording.id).exists())
+
+    def test_delete_missing_recording_returns_404(self):
+        self.client.credentials(HTTP_AUTHORIZATION='Token ' + self.token.key)
+        response = self.client.delete(reverse('recording-detail', args=['00000000-0000-0000-0000-000000000000']))
+
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+
+class ScheduledMeetingViewTests(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+        self.user = User.objects.create_user(username='organizer', password='pw123456')
+        self.other_user = User.objects.create_user(username='intruder', password='pw123456')
+        self.token = Token.objects.create(user=self.user)
+        self.other_token = Token.objects.create(user=self.other_user)
+        self.client.credentials(HTTP_AUTHORIZATION='Token ' + self.token.key)
+
+    def test_create_meeting_also_creates_its_room(self):
+        response = self.client.post(reverse('meeting-list-create'), {
+            'title': 'Design Sync',
+            'description': 'Weekly design chat',
+            'scheduled_at': '2026-08-01T10:00:00Z',
+            'duration_minutes': 45,
+        }, format='json')
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(ScheduledMeeting.objects.count(), 1)
+        self.assertEqual(Room.objects.count(), 1)
+        room = Room.objects.first()
+        self.assertEqual(room.name, 'Design Sync')
+        self.assertEqual(room.description, 'Weekly design chat')
+        self.assertEqual(response.data['room_name'], 'Design Sync')
+        self.assertEqual(response.data['duration_minutes'], 45)
+
+    def test_create_meeting_requires_title_and_scheduled_at(self):
+        response = self.client.post(reverse('meeting-list-create'), {
+            'description': 'Missing title and date',
+        }, format='json')
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(ScheduledMeeting.objects.count(), 0)
+        self.assertEqual(Room.objects.count(), 0)
+
+    def test_list_only_returns_own_meetings(self):
+        own_room = Room.objects.create(name='My Meeting', created_by=self.user)
+        ScheduledMeeting.objects.create(room=own_room, created_by=self.user, scheduled_at=timezone.now())
+        other_room = Room.objects.create(name='Their Meeting', created_by=self.other_user)
+        ScheduledMeeting.objects.create(room=other_room, created_by=self.other_user, scheduled_at=timezone.now())
+
+        response = self.client.get(reverse('meeting-list-create'))
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        names = [m['room_name'] for m in response.data]
+        self.assertIn('My Meeting', names)
+        self.assertNotIn('Their Meeting', names)
+
+    def test_owner_can_cancel_meeting_and_its_room_is_removed(self):
+        room = Room.objects.create(name='Cancel Me', created_by=self.user)
+        meeting = ScheduledMeeting.objects.create(room=room, created_by=self.user, scheduled_at=timezone.now())
+
+        response = self.client.delete(reverse('meeting-detail', args=[meeting.id]))
+
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertFalse(ScheduledMeeting.objects.filter(id=meeting.id).exists())
+        self.assertFalse(Room.objects.filter(id=room.id).exists())
+
+    def test_non_owner_cannot_cancel_meeting(self):
+        room = Room.objects.create(name='Protected Meeting', created_by=self.user)
+        meeting = ScheduledMeeting.objects.create(room=room, created_by=self.user, scheduled_at=timezone.now())
+
+        self.client.credentials(HTTP_AUTHORIZATION='Token ' + self.other_token.key)
+        response = self.client.delete(reverse('meeting-detail', args=[meeting.id]))
+
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertTrue(ScheduledMeeting.objects.filter(id=meeting.id).exists())
+        self.assertTrue(Room.objects.filter(id=room.id).exists())
+
+    def test_requires_authentication(self):
+        self.client.credentials()
+        response = self.client.get(reverse('meeting-list-create'))
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
