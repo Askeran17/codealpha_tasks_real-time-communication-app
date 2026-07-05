@@ -11,4 +11,11 @@ urlpatterns = [
     path('rooms/<uuid:pk>/', views.RoomDetailView.as_view(), name='room-detail'),
     path('rooms/<uuid:room_id>/messages/', views.RoomMessagesListView.as_view(), name='room-messages'),
     path('rooms/<uuid:room_id>/files/', views.RoomFilesView.as_view(), name='room-files'),
+    path('rooms/<uuid:room_id>/recordings/', views.RoomRecordingsView.as_view(), name='room-recordings'),
+
+    path('users/', views.UserListView.as_view(), name='user-list'),
+    path('recordings/', views.RecordingListView.as_view(), name='recording-list'),
+    path('recordings/<uuid:pk>/', views.RecordingDetailView.as_view(), name='recording-detail'),
+    path('meetings/', views.ScheduledMeetingListCreateView.as_view(), name='meeting-list-create'),
+    path('meetings/<uuid:pk>/', views.ScheduledMeetingDetailView.as_view(), name='meeting-detail'),
 ]

@@ -7,8 +7,11 @@ from django.contrib.auth import authenticate
 from django.contrib.auth.models import User
 from django.db.models import Q
 from rest_framework.authtoken.models import Token
-from .models import Room, RoomParticipant, Message, SharedFile
-from .serializers import UserSerializer, RoomSerializer, MessageSerializer, SharedFileSerializer
+from .models import Room, RoomParticipant, Message, SharedFile, Recording, ScheduledMeeting
+from .serializers import (
+    UserSerializer, RoomSerializer, MessageSerializer, SharedFileSerializer,
+    RecordingSerializer, ScheduledMeetingSerializer,
+)
 
 class RegisterView(APIView):
     permission_classes = [AllowAny]
@@ -158,13 +161,21 @@ class RoomListCreateView(generics.ListCreateAPIView):
         serializer.save(created_by=self.request.user)
 
 
-class RoomDetailView(generics.RetrieveDestroyAPIView):
+class RoomDetailView(generics.RetrieveUpdateDestroyAPIView):
     # Retrieval is intentionally open to any authenticated user — that's
-    # what makes joining via a shared room ID/link possible. Deletion is
-    # restricted to the room's owner in perform_destroy below.
+    # what makes joining via a shared room ID/link possible. Updating
+    # (currently just the `pinned` flag) and deletion are restricted to the
+    # room's owner below.
     queryset = Room.objects.filter(is_active=True)
     serializer_class = RoomSerializer
     permission_classes = [IsAuthenticated]
+
+    def perform_update(self, serializer):
+        if serializer.instance.created_by_id != self.request.user.id:
+            raise PermissionDenied("Only the room owner can update this room.")
+        # Only the pin state is editable via this endpoint — name/description
+        # aren't exposed to renaming here to keep this a narrow, single-purpose update.
+        serializer.save(pinned=serializer.validated_data.get('pinned', serializer.instance.pinned))
 
     def perform_destroy(self, instance):
         if instance.created_by_id != self.request.user.id:
@@ -224,3 +235,127 @@ class RoomFilesView(APIView):
 
         serializer = SharedFileSerializer(shared_file, context={'request': request})
         return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+
+class UserListView(generics.ListAPIView):
+    """Directory of all other registered users, for the Contacts page."""
+    serializer_class = UserSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        queryset = User.objects.exclude(pk=self.request.user.pk).order_by('username')
+        search = self.request.query_params.get('search')
+        if search:
+            queryset = queryset.filter(
+                Q(username__icontains=search) | Q(first_name__icontains=search) | Q(email__icontains=search)
+            )
+        return queryset
+
+
+class RoomRecordingsView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, room_id):
+        recordings = Recording.objects.filter(room_id=room_id).order_by('-created_at')
+        serializer = RecordingSerializer(recordings, many=True, context={'request': request})
+        return Response(serializer.data)
+
+    def post(self, request, room_id):
+        file_obj = request.FILES.get('file')
+        file_size = request.data.get('file_size')
+        mime_type = request.data.get('mime_type')
+        display_name = request.data.get('display_name', request.user.username)
+        iv = request.data.get('iv')
+        duration_seconds = request.data.get('duration_seconds', 0)
+
+        if not file_obj or not file_size or not mime_type or not iv:
+            return Response(
+                {'error': 'Missing required fields'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+            room = Room.objects.get(id=room_id)
+        except Room.DoesNotExist:
+            return Response(
+                {'error': 'Room not found'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        recording = Recording.objects.create(
+            room=room,
+            created_by=request.user,
+            display_name=display_name,
+            file=file_obj,
+            file_size=int(file_size),
+            mime_type=mime_type,
+            iv=iv,
+            duration_seconds=int(duration_seconds),
+        )
+
+        serializer = RecordingSerializer(recording, context={'request': request})
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+
+class RecordingListView(generics.ListAPIView):
+    """Cross-room recordings dashboard — only the creator's own recordings."""
+    serializer_class = RecordingSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return Recording.objects.filter(created_by=self.request.user).order_by('-created_at')
+
+
+class ScheduledMeetingListCreateView(generics.ListCreateAPIView):
+    serializer_class = ScheduledMeetingSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return ScheduledMeeting.objects.filter(created_by=self.request.user).order_by('scheduled_at')
+
+    def create(self, request, *args, **kwargs):
+        title = request.data.get('title')
+        description = request.data.get('description', '')
+        scheduled_at = request.data.get('scheduled_at')
+        duration_minutes = request.data.get('duration_minutes', 60)
+
+        if not title or not scheduled_at:
+            return Response(
+                {'error': 'Title and scheduled_at are required'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        room = Room.objects.create(name=title, description=description, created_by=request.user)
+        meeting = ScheduledMeeting.objects.create(
+            room=room,
+            created_by=request.user,
+            scheduled_at=scheduled_at,
+            duration_minutes=int(duration_minutes),
+        )
+
+        serializer = self.get_serializer(meeting)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+
+class ScheduledMeetingDetailView(generics.DestroyAPIView):
+    queryset = ScheduledMeeting.objects.all()
+    serializer_class = ScheduledMeetingSerializer
+    permission_classes = [IsAuthenticated]
+
+    def perform_destroy(self, instance):
+        if instance.created_by_id != self.request.user.id:
+            raise PermissionDenied("Only the meeting owner can cancel this meeting.")
+        # Room has on_delete=CASCADE back to this meeting, so deleting the
+        # room also removes the ScheduledMeeting row.
+        instance.room.delete()
+
+
+class RecordingDetailView(generics.DestroyAPIView):
+    queryset = Recording.objects.all()
+    serializer_class = RecordingSerializer
+    permission_classes = [IsAuthenticated]
+
+    def perform_destroy(self, instance):
+        if instance.created_by_id != self.request.user.id:
+            raise PermissionDenied("Only the recording owner can delete this recording.")
+        instance.delete()

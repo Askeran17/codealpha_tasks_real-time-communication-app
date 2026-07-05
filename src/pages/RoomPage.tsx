@@ -2,6 +2,8 @@ import { useEffect, useState } from "react"
 import { api, type AuthUser } from "@/lib/api"
 import { toast } from "sonner"
 import { useWebRTC } from "@/hooks/use-webrtc"
+import { useCallRecorder } from "@/hooks/use-call-recorder"
+import SettingsDialog from "@/components/SettingsDialog"
 import VideoTile from "@/components/VideoTile"
 import ChatPanel from "@/components/ChatPanel"
 import Whiteboard from "@/components/Whiteboard"
@@ -25,8 +27,6 @@ import {
   Users,
   Shield,
   Link2,
-  LayoutDashboard,
-  Disc,
   Settings,
   Crown,
   ChevronDown,
@@ -40,8 +40,7 @@ import {
   MoreVertical,
   Folder,
   ChevronRight,
-  Calendar,
-  PenLine
+  Hand
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -51,14 +50,26 @@ type Props = {
   onLeave: () => void
 }
 
-type Panel = "chat" | "files" | "whiteboard" | null
+type Panel = "chat" | "files" | "people" | "whiteboard" | null
 
 export default function RoomPage({ roomId, user, onLeave }: Props) {
   const [activePanel, setActivePanel] = useState<Panel>("chat")
   const [seconds, setSeconds] = useState(0) // Starting meeting timer from zero
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
-  const [handRaised, setHandRaised] = useState(false)
-  const [isRecording, setIsRecording] = useState(false)
+  const [settingsOpen, setSettingsOpen] = useState(false)
+  const [pinnedPeerId, setPinnedPeerId] = useState<string | null>(null)
+  const [audioInputs, setAudioInputs] = useState<MediaDeviceInfo[]>([])
+  const [activeAudioInputId, setActiveAudioInputId] = useState<string | null>(null)
+
+  const loadAudioInputs = async () => {
+    try {
+      const devices = await navigator.mediaDevices.enumerateDevices()
+      setAudioInputs(devices.filter((d) => d.kind === "audioinput"))
+    } catch {
+      // Device labels require permission, which the active call already has;
+      // if this still fails there's nothing else to try.
+    }
+  }
 
   // Clock ticking
   useEffect(() => {
@@ -82,14 +93,23 @@ export default function RoomPage({ roomId, user, onLeave }: Props) {
     peers,
     localState,
     displayName,
+    reactions,
     toggleAudio,
     toggleVideo,
+    toggleHandRaise,
+    sendReaction,
+    switchAudioInput,
     startScreenShare,
     stopScreenShare,
   } = useWebRTC(roomId, user)
 
+  const recorder = useCallRecorder(localStream, screenStream, peers, roomId, displayName)
+
   const peersArray = Array.from(peers.values())
-  const activePeer = peersArray.find(p => p.screenSharing) || peersArray[0] || null
+  const activePeer = (pinnedPeerId && peersArray.find(p => p.userId === pinnedPeerId))
+    || peersArray.find(p => p.screenSharing)
+    || peersArray[0]
+    || null
   const getInitials = (name: string) =>
     name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2)
 
@@ -175,16 +195,13 @@ export default function RoomPage({ roomId, user, onLeave }: Props) {
   }
 
 
-  // Sidebar navigation links definition (dark mode version)
-  const navItems: { name: string; icon: any; active: boolean; badge?: number }[] = [
-    { name: "Dashboard", icon: LayoutDashboard, active: true },
-    { name: "Meeting Rooms", icon: VideoIcon, active: false },
-    { name: "Calendar", icon: Calendar, active: false },
-    { name: "Recordings", icon: Disc, active: false },
-    { name: "Chats", icon: MessageSquare, active: false },
-    { name: "People", icon: Users, active: false },
-    { name: "Files", icon: Folder, active: false },
-    { name: "Settings", icon: Settings, active: false },
+  // Sidebar navigation links definition (dark mode version) — these all
+  // toggle panels within the room itself.
+  const navItems: { name: string; icon: any; active: boolean; onClick: () => void; badge?: number }[] = [
+    { name: "Chats", icon: MessageSquare, active: activePanel === "chat", onClick: () => togglePanel("chat") },
+    { name: "People", icon: Users, active: activePanel === "people", onClick: () => togglePanel("people") },
+    { name: "Files", icon: Folder, active: activePanel === "files", onClick: () => togglePanel("files") },
+    { name: "Settings", icon: Settings, active: settingsOpen, onClick: () => setSettingsOpen(true) },
   ]
 
   const sidebarContent = (
@@ -208,10 +225,14 @@ export default function RoomPage({ roomId, user, onLeave }: Props) {
             return (
               <button
                 key={item.name}
+                onClick={() => {
+                  item.onClick()
+                  setMobileSidebarOpen(false)
+                }}
                 className={cn(
                   "w-full flex items-center justify-between px-3 py-3 text-[15px] font-medium rounded-xl transition-all duration-200 cursor-pointer text-left",
-                  item.active 
-                    ? "bg-[#1C1C21] text-[#FF6A2E]" 
+                  item.active
+                    ? "bg-[#1C1C21] text-[#FF6A2E]"
                     : "text-stone-400 hover:bg-[#1A1A20] hover:text-white"
                 )}
               >
@@ -259,6 +280,8 @@ export default function RoomPage({ roomId, user, onLeave }: Props) {
       className="flex bg-[#0B0C0E] overflow-hidden text-white w-full select-none"
       style={{ height: "var(--room-vh, 100dvh)", fontFamily: '"Plus Jakarta Sans", sans-serif' }}
     >
+      <SettingsDialog user={user} open={settingsOpen} onOpenChange={setSettingsOpen} />
+
       {/* Desktop Sidebar (Left side panel) */}
       <aside className="hidden lg:block w-[280px] bg-[#111214] border-r border-white/5 p-6 shrink-0 h-full">
         {sidebarContent}
@@ -392,6 +415,23 @@ export default function RoomPage({ roomId, user, onLeave }: Props) {
                 <path d="M-100 380C100 280 200 480 400 380C600 280 700 480 900 380" stroke="#FF2E63" strokeWidth="2.5" />
               </svg>
 
+              {/* Floating emoji reactions burst */}
+              <div className="absolute inset-x-0 bottom-24 flex justify-center pointer-events-none z-20">
+                <div className="relative w-full max-w-xs h-0">
+                  {reactions.map((reaction) => (
+                    <div
+                      key={reaction.id}
+                      className="absolute bottom-0 left-1/2 -translate-x-1/2 flex flex-col items-center animate-reaction-float"
+                    >
+                      <span className="text-4xl leading-none">{reaction.emoji}</span>
+                      <span className="text-[10px] font-bold text-white bg-black/50 px-2 py-0.5 rounded-full mt-1 whitespace-nowrap">
+                        {reaction.displayName}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
               {/* Top left Tag: Connection quality */}
               <div className="absolute top-4 left-4 flex items-center gap-2 py-1.5 px-3 rounded-full bg-[#111214]/80 backdrop-blur-md border border-white/5">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
@@ -494,10 +534,31 @@ export default function RoomPage({ roomId, user, onLeave }: Props) {
                           </div>
                         </div>
                       )}
+                      {/* Hand raised badge */}
+                      {peer.handRaised && (
+                        <div className="absolute top-2 left-2 w-6 h-6 rounded-full bg-amber-500 text-stone-950 flex items-center justify-center z-10 animate-bounce">
+                          <Hand className="w-3.5 h-3.5" />
+                        </div>
+                      )}
                       {/* Header Menu */}
-                      <button className="absolute top-2 right-2 p-1 rounded-full bg-black/40 text-stone-400 hover:text-white cursor-pointer z-10">
-                        <MoreHorizontal className="w-3.5 h-3.5" />
-                      </button>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <button
+                            onClick={(e) => e.stopPropagation()}
+                            className="absolute top-2 right-2 p-1 rounded-full bg-black/40 text-stone-400 hover:text-white cursor-pointer z-10"
+                          >
+                            <MoreHorizontal className="w-3.5 h-3.5" />
+                          </button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="rounded-xl bg-[#111214] border border-white/5 text-white">
+                          <DropdownMenuItem
+                            onSelect={() => setPinnedPeerId(pinnedPeerId === peer.userId ? null : peer.userId)}
+                            className="cursor-pointer"
+                          >
+                            {pinnedPeerId === peer.userId ? "Unpin" : "Pin to main view"}
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                       {/* Footer Mic tag */}
                       <div className="absolute bottom-2.5 left-2.5 right-2.5 flex items-center gap-1.5 py-1 px-2.5 bg-black/60 backdrop-blur-md rounded-lg z-10 w-fit">
                         {peer.audioEnabled ? (
@@ -541,7 +602,7 @@ export default function RoomPage({ roomId, user, onLeave }: Props) {
                       <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#FF6A2E] rounded-full" />
                     )}
                   </button>
-                  <button 
+                  <button
                     onClick={() => setActivePanel("files")}
                     className={cn(
                       "text-base font-bold transition-all relative pb-1 cursor-pointer",
@@ -550,6 +611,30 @@ export default function RoomPage({ roomId, user, onLeave }: Props) {
                   >
                     Files
                     {activePanel === "files" && (
+                      <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#FF6A2E] rounded-full" />
+                    )}
+                  </button>
+                  <button
+                    onClick={() => setActivePanel("people")}
+                    className={cn(
+                      "text-base font-bold transition-all relative pb-1 cursor-pointer",
+                      activePanel === "people" ? "text-white" : "text-stone-500 hover:text-stone-300"
+                    )}
+                  >
+                    People
+                    {activePanel === "people" && (
+                      <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#FF6A2E] rounded-full" />
+                    )}
+                  </button>
+                  <button
+                    onClick={() => setActivePanel("whiteboard")}
+                    className={cn(
+                      "text-base font-bold transition-all relative pb-1 cursor-pointer",
+                      activePanel === "whiteboard" ? "text-white" : "text-stone-500 hover:text-stone-300"
+                    )}
+                  >
+                    Whiteboard
+                    {activePanel === "whiteboard" && (
                       <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#FF6A2E] rounded-full" />
                     )}
                   </button>
@@ -568,6 +653,39 @@ export default function RoomPage({ roomId, user, onLeave }: Props) {
                   <ChatPanel roomId={roomId} user={user} mode="chat" />
                 ) : activePanel === "files" ? (
                   <ChatPanel roomId={roomId} user={user} mode="files" />
+                ) : activePanel === "people" ? (
+                  <div className="flex-1 overflow-y-auto p-4 space-y-2">
+                    <div className="flex items-center justify-between p-3 rounded-xl bg-white/5">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <Avatar className="w-9 h-9 border border-white/10 shrink-0">
+                          <AvatarImage src={localStorage.getItem(`user-avatar-${user.id}`) || user.user_metadata?.avatar_url || ""} className="object-cover object-[center_35%]" />
+                          <AvatarFallback className="bg-[#FF6A2E] text-white text-xs font-bold">{getInitials(displayName)}</AvatarFallback>
+                        </Avatar>
+                        <p className="text-sm font-semibold text-white truncate">{displayName} (You)</p>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        {localState.audioEnabled ? <Mic className="w-4 h-4 text-emerald-400" /> : <MicOff className="w-4 h-4 text-red-500" />}
+                        {localState.videoEnabled ? <VideoIcon className="w-4 h-4 text-stone-400" /> : <VideoOff className="w-4 h-4 text-red-500" />}
+                      </div>
+                    </div>
+                    {peersArray.map((peer) => (
+                      <div key={peer.userId} className="flex items-center justify-between p-3 rounded-xl bg-white/5">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#FF2E63] to-[#FF6A2E] flex items-center justify-center text-white text-xs font-bold shrink-0">
+                            {getInitials(peer.displayName)}
+                          </div>
+                          <p className="text-sm font-semibold text-white truncate">{peer.displayName}</p>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          {peer.audioEnabled ? <Mic className="w-4 h-4 text-emerald-400" /> : <MicOff className="w-4 h-4 text-red-500" />}
+                          {peer.videoEnabled ? <VideoIcon className="w-4 h-4 text-stone-400" /> : <VideoOff className="w-4 h-4 text-red-500" />}
+                        </div>
+                      </div>
+                    ))}
+                    {peersArray.length === 0 && (
+                      <p className="text-sm text-stone-500 text-center py-8">No one else has joined yet.</p>
+                    )}
+                  </div>
                 ) : (
                   <Whiteboard roomId={roomId} user={user} />
                 )}
@@ -585,22 +703,43 @@ export default function RoomPage({ roomId, user, onLeave }: Props) {
             <div className="flex flex-col items-center gap-2">
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <div className="flex items-center gap-0">
+                  <div className="flex items-center gap-1">
                     <button
                       onClick={toggleAudio}
                       className={cn(
-                        "w-12 h-12 rounded-l-2xl flex items-center justify-center cursor-pointer transition-colors border-y border-l border-white/5 text-white",
+                        "w-12 h-12 rounded-full flex items-center justify-center cursor-pointer transition-colors text-white",
                         localState.audioEnabled ? "bg-[#16171B] hover:bg-[#202127]" : "bg-red-600 hover:bg-red-700"
                       )}
                     >
                       {localState.audioEnabled ? <Mic className="w-5 h-5 text-white" /> : <MicOff className="w-5 h-5 text-white" />}
                     </button>
-                    <button 
-                      onClick={() => toast.info("Microphone input sources options.")}
-                      className="w-8 h-12 rounded-r-2xl bg-[#16171B] hover:bg-[#202127] border-y border-r border-white/5 text-stone-400 hover:text-white flex items-center justify-center cursor-pointer"
-                    >
-                      <ChevronDown className="w-4 h-4" />
-                    </button>
+                    <DropdownMenu onOpenChange={(open) => { if (open) loadAudioInputs() }}>
+                      <DropdownMenuTrigger asChild>
+                        <button className="w-6 h-12 rounded-full bg-[#16171B] hover:bg-[#202127] text-stone-400 hover:text-white flex items-center justify-center cursor-pointer">
+                          <ChevronDown className="w-4 h-4" />
+                        </button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="start" side="top" className="rounded-xl bg-[#111214] border border-white/5 text-white min-w-56">
+                        {audioInputs.length === 0 && (
+                          <div className="px-2 py-2 text-xs text-stone-500">No microphones found</div>
+                        )}
+                        {audioInputs.map((device, idx) => (
+                          <DropdownMenuItem
+                            key={device.deviceId || idx}
+                            onSelect={async () => {
+                              await switchAudioInput(device.deviceId)
+                              setActiveAudioInputId(device.deviceId)
+                            }}
+                            className={cn(
+                              "cursor-pointer text-sm",
+                              activeAudioInputId === device.deviceId && "text-[#FF6A2E]"
+                            )}
+                          >
+                            {device.label || `Microphone ${idx + 1}`}
+                          </DropdownMenuItem>
+                        ))}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
                 </TooltipTrigger>
                 <TooltipContent>Microphone settings</TooltipContent>
@@ -615,7 +754,7 @@ export default function RoomPage({ roomId, user, onLeave }: Props) {
                   <button
                     onClick={toggleVideo}
                     className={cn(
-                      "w-12 h-12 rounded-2xl flex items-center justify-center cursor-pointer transition-colors border border-white/5 text-white",
+                      "w-12 h-12 rounded-full flex items-center justify-center cursor-pointer transition-colors text-white",
                       localState.videoEnabled ? "bg-[#16171B] hover:bg-[#202127]" : "bg-red-600 hover:bg-red-700"
                     )}
                   >
@@ -634,7 +773,7 @@ export default function RoomPage({ roomId, user, onLeave }: Props) {
                   <button
                     onClick={handleScreenShare}
                     className={cn(
-                      "w-12 h-12 rounded-2xl flex items-center justify-center cursor-pointer transition-colors border border-white/5 text-white",
+                      "w-12 h-12 rounded-full flex items-center justify-center cursor-pointer transition-colors text-white",
                       localState.screenSharing ? "bg-gradient-to-br from-[#FF6A2E] to-[#FF2E63]" : "bg-[#16171B] hover:bg-[#202127]"
                     )}
                   >
@@ -653,7 +792,7 @@ export default function RoomPage({ roomId, user, onLeave }: Props) {
                   <button
                     onClick={() => togglePanel("chat")}
                     className={cn(
-                      "w-12 h-12 rounded-2xl flex items-center justify-center cursor-pointer transition-colors border border-white/5 text-white",
+                      "w-12 h-12 rounded-full flex items-center justify-center cursor-pointer transition-colors text-white",
                       activePanel === "chat" ? "bg-[#FF6A2E]/25 text-[#FF6A2E]" : "bg-[#16171B] hover:bg-[#202127]"
                     )}
                   >
@@ -671,12 +810,12 @@ export default function RoomPage({ roomId, user, onLeave }: Props) {
                 <TooltipTrigger asChild>
                   <button
                     onClick={() => {
-                      setHandRaised(!handRaised)
-                      toast.success(handRaised ? "Hand lowered" : "Hand raised")
+                      toggleHandRaise()
+                      toast.success(localState.handRaised ? "Hand lowered" : "Hand raised")
                     }}
                     className={cn(
-                      "w-12 h-12 rounded-2xl flex items-center justify-center cursor-pointer transition-colors border border-white/5 text-white",
-                      handRaised ? "bg-amber-500 text-stone-950" : "bg-[#16171B] hover:bg-[#202127]"
+                      "w-12 h-12 rounded-full flex items-center justify-center cursor-pointer transition-colors text-white",
+                      localState.handRaised ? "bg-amber-500 text-stone-950" : "bg-[#16171B] hover:bg-[#202127]"
                     )}
                   >
                     <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -687,7 +826,7 @@ export default function RoomPage({ roomId, user, onLeave }: Props) {
                     </svg>
                   </button>
                 </TooltipTrigger>
-                <TooltipContent>{handRaised ? "Lower Hand" : "Raise Hand"}</TooltipContent>
+                <TooltipContent>{localState.handRaised ? "Lower Hand" : "Raise Hand"}</TooltipContent>
               </Tooltip>
               <span className="text-[11px] font-bold text-stone-400">Raise Hand</span>
             </div>
@@ -717,66 +856,66 @@ export default function RoomPage({ roomId, user, onLeave }: Props) {
               <TooltipContent>Leave conference</TooltipContent>
             </Tooltip>
 
-            {/* Mock Record */}
+            {/* Call Recording */}
             <div className="flex flex-col items-center gap-2">
               <Tooltip>
                 <TooltipTrigger asChild>
                   <button
+                    disabled={!recorder.isSupported}
                     onClick={() => {
-                      setIsRecording(!isRecording)
-                      toast.info(isRecording ? "Recording saved to Recordings" : "Recording started successfully")
+                      if (recorder.isRecording) {
+                        recorder.stopRecording()
+                        toast.info("Recording stopped — saving to Recordings")
+                      } else {
+                        recorder.startRecording()
+                        toast.success("Recording started")
+                      }
                     }}
                     className={cn(
-                      "w-12 h-12 rounded-2xl flex items-center justify-center cursor-pointer transition-colors border border-white/5 text-white",
-                      isRecording ? "bg-red-600 animate-pulse text-white" : "bg-[#16171B] hover:bg-[#202127]"
+                      "w-12 h-12 rounded-full flex items-center justify-center cursor-pointer transition-colors text-white disabled:opacity-40 disabled:cursor-not-allowed",
+                      recorder.isRecording ? "bg-red-600 animate-pulse text-white" : "bg-[#16171B] hover:bg-[#202127]"
                     )}
                   >
-                    <Circle className={cn("w-5 h-5", isRecording ? "fill-white stroke-white" : "stroke-stone-400")} />
+                    <Circle className={cn("w-5 h-5", recorder.isRecording ? "fill-white stroke-white" : "stroke-stone-400")} />
                   </button>
                 </TooltipTrigger>
-                <TooltipContent>{isRecording ? "Stop recording" : "Record meeting"}</TooltipContent>
+                <TooltipContent>
+                  {!recorder.isSupported
+                    ? "Recording not supported in this browser"
+                    : recorder.isRecording
+                      ? `Stop recording (${Math.floor(recorder.elapsedSeconds / 60)}:${String(recorder.elapsedSeconds % 60).padStart(2, "0")})`
+                      : "Record meeting"}
+                </TooltipContent>
               </Tooltip>
               <span className="text-[11px] font-bold text-stone-400">Record</span>
             </div>
 
             {/* Reactions toggle */}
             <div className="flex flex-col items-center gap-2">
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <button
-                    onClick={() => toast.info("Select reaction: 👍 ❤️ 🔥 🎉")}
-                    className="w-12 h-12 rounded-2xl bg-[#16171B] hover:bg-[#202127] flex items-center justify-center cursor-pointer border border-white/5 text-white"
-                  >
-                    <Smile className="w-5 h-5 text-stone-400" />
-                  </button>
-                </TooltipTrigger>
-                <TooltipContent>Send reactions</TooltipContent>
-              </Tooltip>
-              <span className="text-[11px] font-bold text-stone-400">Reactions</span>
-            </div>
-
-            {/* More options */}
-            <div className="flex flex-col items-center gap-2">
               <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <button className="w-12 h-12 rounded-2xl bg-[#16171B] hover:bg-[#202127] flex items-center justify-center cursor-pointer border border-white/5 text-white">
-                    <MoreHorizontal className="w-5 h-5 text-stone-400" />
-                  </button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="rounded-xl bg-[#111214] border border-white/5 text-white">
-                  <DropdownMenuItem onSelect={() => setActivePanel(activePanel === "whiteboard" ? null : "whiteboard")} className="cursor-pointer">
-                    <PenLine className="w-4 h-4 mr-2" />
-                    Toggle Whiteboard
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onSelect={() => toast.info("Virtual backgrounds coming soon.")} className="cursor-pointer">
-                    Virtual Background
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onSelect={() => toast.info("Meeting security configuration.")} className="cursor-pointer">
-                    Meeting Settings
-                  </DropdownMenuItem>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <DropdownMenuTrigger asChild>
+                      <button className="w-12 h-12 rounded-full bg-[#16171B] hover:bg-[#202127] flex items-center justify-center cursor-pointer text-white">
+                        <Smile className="w-5 h-5 text-stone-400" />
+                      </button>
+                    </DropdownMenuTrigger>
+                  </TooltipTrigger>
+                  <TooltipContent>Send reactions</TooltipContent>
+                </Tooltip>
+                <DropdownMenuContent align="center" side="top" className="flex gap-1 p-2 rounded-2xl bg-[#111214] border border-white/5 w-auto">
+                  {["👍", "❤️", "🔥", "🎉", "😂", "👏"].map((emoji) => (
+                    <DropdownMenuItem
+                      key={emoji}
+                      onSelect={() => sendReaction(emoji)}
+                      className="cursor-pointer text-2xl p-2 rounded-xl focus:bg-white/10 justify-center"
+                    >
+                      {emoji}
+                    </DropdownMenuItem>
+                  ))}
                 </DropdownMenuContent>
               </DropdownMenu>
-              <span className="text-[11px] font-bold text-stone-400">More</span>
+              <span className="text-[11px] font-bold text-stone-400">Reactions</span>
             </div>
 
           </div>

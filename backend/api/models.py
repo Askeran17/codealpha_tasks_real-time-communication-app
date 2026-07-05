@@ -9,6 +9,7 @@ class Room(models.Model):
     created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='created_rooms')
     created_at = models.DateTimeField(auto_now_add=True)
     is_active = models.BooleanField(default=True)
+    pinned = models.BooleanField(default=False)
 
     def __str__(self):
         return self.name
@@ -52,3 +53,29 @@ class SharedFile(models.Model):
 
     def __str__(self):
         return f"File {self.file_name} in {self.room.name}"
+
+class Recording(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    room = models.ForeignKey(Room, on_delete=models.CASCADE, related_name='recordings')
+    created_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name='recordings')
+    display_name = models.CharField(max_length=255)
+    file = models.FileField(upload_to='recordings/')
+    file_size = models.BigIntegerField()
+    mime_type = models.CharField(max_length=255)
+    iv = models.CharField(max_length=255, blank=True, null=True)
+    duration_seconds = models.PositiveIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Recording of {self.room.name} ({self.created_at})"
+
+class ScheduledMeeting(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    room = models.OneToOneField(Room, on_delete=models.CASCADE, related_name='scheduled_meeting')
+    created_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name='scheduled_meetings')
+    scheduled_at = models.DateTimeField()
+    duration_minutes = models.PositiveIntegerField(default=60)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.room.name} at {self.scheduled_at}"

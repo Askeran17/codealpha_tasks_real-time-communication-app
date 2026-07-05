@@ -27,6 +27,7 @@ export type Room = {
   created_by_name?: string
   created_at: string
   is_active: boolean
+  pinned: boolean
 }
 
 export type Message = {
@@ -49,6 +50,33 @@ export type SharedFile = {
   file_type: string
   file_url: string
   iv?: string
+  created_at: string
+}
+
+export type Recording = {
+  id: string
+  room_id: string
+  room_name?: string
+  created_by: number | null
+  created_by_name?: string
+  display_name: string
+  file_url: string
+  file_size: number
+  mime_type: string
+  iv?: string
+  duration_seconds: number
+  created_at: string
+}
+
+export type ScheduledMeeting = {
+  id: string
+  room_id: string
+  room_name: string
+  room_description: string | null
+  created_by: number | null
+  created_by_name?: string
+  scheduled_at: string
+  duration_minutes: number
   created_at: string
 }
 
@@ -172,6 +200,13 @@ export const api = {
     })
   },
 
+  async togglePinRoom(roomId: string, pinned: boolean): Promise<Room> {
+    return apiRequest<Room>(`rooms/${roomId}/`, {
+      method: "PATCH",
+      body: JSON.stringify({ pinned }),
+    })
+  },
+
   // Messages / Chat history
   async getRoomMessages(roomId: string): Promise<Message[]> {
     const djangoMsgs = await apiRequest<any[]>(`rooms/${roomId}/messages/`)
@@ -238,6 +273,103 @@ export const api = {
     })
     if (!response.ok) throw new Error("Failed to download file")
     return response.blob()
+  },
+
+  // Contacts directory
+  async listUsers(search?: string): Promise<DjangoUser[]> {
+    const query = search?.trim() ? `?search=${encodeURIComponent(search.trim())}` : ""
+    return apiRequest<DjangoUser[]>(`users/${query}`)
+  },
+
+  // Scheduled meetings (Calendar)
+  async listMeetings(): Promise<ScheduledMeeting[]> {
+    return apiRequest<ScheduledMeeting[]>("meetings/")
+  },
+
+  async createMeeting(title: string, description: string, scheduledAt: string, durationMinutes: number): Promise<ScheduledMeeting> {
+    return apiRequest<ScheduledMeeting>("meetings/", {
+      method: "POST",
+      body: JSON.stringify({
+        title,
+        description,
+        scheduled_at: scheduledAt,
+        duration_minutes: durationMinutes,
+      }),
+    })
+  },
+
+  async deleteMeeting(meetingId: string): Promise<void> {
+    await apiRequest<void>(`meetings/${meetingId}/`, {
+      method: "DELETE",
+    })
+  },
+
+  // Recordings
+  async listRoomRecordings(roomId: string): Promise<Recording[]> {
+    const djangoRecordings = await apiRequest<any[]>(`rooms/${roomId}/recordings/`)
+    return djangoRecordings.map(mapDjangoRecording)
+  },
+
+  async listAllRecordings(): Promise<Recording[]> {
+    const djangoRecordings = await apiRequest<any[]>("recordings/")
+    return djangoRecordings.map(mapDjangoRecording)
+  },
+
+  async uploadRecording(
+    roomId: string,
+    encryptedBlob: Blob,
+    displayName: string,
+    fileSize: number,
+    mimeType: string,
+    iv: string,
+    durationSeconds: number
+  ): Promise<Recording> {
+    const formData = new FormData()
+    formData.append("file", encryptedBlob)
+    formData.append("display_name", displayName)
+    formData.append("file_size", String(fileSize))
+    formData.append("mime_type", mimeType)
+    formData.append("iv", iv)
+    formData.append("duration_seconds", String(durationSeconds))
+
+    const r = await apiRequest<any>(`rooms/${roomId}/recordings/`, {
+      method: "POST",
+      body: formData,
+    })
+    return mapDjangoRecording(r)
+  },
+
+  async downloadRecording(fileUrl: string): Promise<Blob> {
+    const response = await fetch(fileUrl, {
+      headers: {
+        "Authorization": `Token ${getToken()}`
+      }
+    })
+    if (!response.ok) throw new Error("Failed to download recording")
+    return response.blob()
+  },
+
+  async deleteRecording(recordingId: string): Promise<void> {
+    await apiRequest<void>(`recordings/${recordingId}/`, {
+      method: "DELETE",
+    })
+  }
+}
+
+function mapDjangoRecording(r: any): Recording {
+  return {
+    id: r.id,
+    room_id: r.room,
+    room_name: r.room_name,
+    created_by: r.created_by,
+    created_by_name: r.created_by_name,
+    display_name: r.display_name,
+    file_url: r.file_url,
+    file_size: r.file_size,
+    mime_type: r.mime_type,
+    iv: r.iv,
+    duration_seconds: r.duration_seconds,
+    created_at: r.created_at,
   }
 }
 

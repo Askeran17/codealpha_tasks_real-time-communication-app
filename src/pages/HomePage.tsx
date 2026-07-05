@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react"
-import { api, type Room, type AuthUser } from "@/lib/api"
+import { api, type Room, type AuthUser, type DjangoUser, type ScheduledMeeting, type Recording } from "@/lib/api"
+import { deriveKey, decryptFile } from "@/lib/crypto"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -13,10 +14,10 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { toast } from "sonner"
-import { 
-  LayoutDashboard, Video, Calendar, Disc, Users, Settings, Crown, Search, Bell, 
-  ChevronDown, ChevronRight, Plus, Link2, ArrowRight, Clock, Trash2, Folder, 
-  Monitor, LogOut, Sun, Moon, Menu, X
+import {
+  LayoutDashboard, Video, Calendar, Disc, Users, Settings, Crown, Search,
+  ChevronDown, ChevronRight, Plus, Link2, ArrowRight, Clock, Trash2,
+  Monitor, LogOut, Sun, Moon, Menu, X, Download, Play, Pin
 } from "lucide-react"
 import { useTheme } from "@/components/theme-provider"
 import SettingsDialog from "@/components/SettingsDialog"
@@ -49,16 +50,11 @@ export default function HomePage({ user, onJoinRoom, onSignOut }: Props) {
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
   const { theme, setTheme } = useTheme()
 
-  const [userAvatar, setUserAvatar] = useState(() => localStorage.getItem(`user-avatar-${user.id}`) || "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=120&h=120&fit=crop&crop=faces&q=80")
+  const [userAvatar, setUserAvatar] = useState(() => localStorage.getItem(`user-avatar-${user.id}`) || "")
 
   useEffect(() => {
     const handleAuthChanged = () => {
-      const saved = localStorage.getItem(`user-avatar-${user.id}`)
-      if (saved) {
-        setUserAvatar(saved)
-      } else {
-        setUserAvatar("https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=120&h=120&fit=crop&crop=faces&q=80")
-      }
+      setUserAvatar(localStorage.getItem(`user-avatar-${user.id}`) || "")
     }
     window.addEventListener("auth-changed", handleAuthChanged)
     handleAuthChanged()
@@ -67,22 +63,6 @@ export default function HomePage({ user, onJoinRoom, onSignOut }: Props) {
 
   const displayName = user.user_metadata?.display_name || user.username || "User"
   
-  // Stable high-quality avatar image URLs
-  const avatars = {
-    johnDoe: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=120&h=120&fit=crop&crop=faces&q=80",
-    user1: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&h=100&fit=crop&crop=faces&q=80",
-    user2: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&h=100&fit=crop&crop=faces&q=80",
-    user3: "https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?w=100&h=100&fit=crop&crop=faces&q=80",
-    user4: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=100&h=100&fit=crop&crop=faces&q=80",
-    user5: "https://images.unsplash.com/photo-1599566150163-29194dcaad36?w=100&h=100&fit=crop&crop=faces&q=80",
-    user6: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&h=100&fit=crop&crop=faces&q=80",
-    user7: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=100&h=100&fit=crop&crop=faces&q=80",
-    user8: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&h=100&fit=crop&crop=faces&q=80",
-    user9: "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=100&h=100&fit=crop&crop=faces&q=80",
-    user10: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=faces&q=80",
-    user11: "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=100&h=100&fit=crop&crop=faces&q=80",
-    user12: "https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?w=100&h=100&fit=crop&crop=faces&q=80",
-  }
 
   const fetchRooms = useCallback(async () => {
     try {
@@ -145,21 +125,13 @@ export default function HomePage({ user, onJoinRoom, onSignOut }: Props) {
     }
   }
 
-  // Interactive handler for mock cards to auto-create or join the corresponding room
-  const handleJoinMockRoom = async (name: string, description: string) => {
-    const existing = rooms.find(r => r.name.toLowerCase() === name.toLowerCase())
-    if (existing) {
-      onJoinRoom(existing.id)
-    } else {
-      const loadingToast = toast.loading(`Starting dynamic room "${name}"...`)
-      try {
-        const data = await api.createRoom(name, description)
-        toast.dismiss(loadingToast)
-        onJoinRoom(data.id)
-      } catch {
-        toast.dismiss(loadingToast)
-        toast.error(`Failed to start ${name}`)
-      }
+  const togglePinRoom = async (room: Room) => {
+    try {
+      await api.togglePinRoom(room.id, !room.pinned)
+      toast.success(room.pinned ? "Unpinned from dashboard" : "Pinned to dashboard")
+      fetchRooms()
+    } catch {
+      toast.error("Failed to update pin")
     }
   }
 
@@ -189,17 +161,280 @@ export default function HomePage({ user, onJoinRoom, onSignOut }: Props) {
     name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2)
 
   // Filter local database rooms by topbar query
-  const filteredUserRooms = rooms.filter(room => 
-    room.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+  const filteredUserRooms = rooms.filter(room =>
+    room.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     (room.description && room.description.toLowerCase().includes(searchQuery.toLowerCase()))
   )
 
-  const isDesignSyncMatch = "design sync".includes(searchQuery.toLowerCase()) || "weekly design team sync".includes(searchQuery.toLowerCase())
-  const isProductReviewMatch = "product review".includes(searchQuery.toLowerCase()) || "discuss new features and roadmap".includes(searchQuery.toLowerCase())
-  const isMarketingMatch = "marketing strategy".includes(searchQuery.toLowerCase()) || "discuss q3 marketing plan and goals".includes(searchQuery.toLowerCase())
-  const isClientOnboardingMatch = "client onboarding".includes(searchQuery.toLowerCase()) || "welcome and onboarding new client".includes(searchQuery.toLowerCase())
+  const pinnedRooms = rooms.filter(room => room.pinned)
+  const cardThemes = [
+    {
+      cardBg: "from-[#FFF6F6] to-[#FFF1F1] dark:from-[#251B18] dark:to-[#1F1816]",
+      cardBorder: "border-[#FFE2E2] dark:border-[#382620]",
+      blob1: "bg-[#FFD6D6]/45 dark:bg-[#3E211A]/40",
+      blob2: "bg-[#FFE2E2]/65 dark:bg-[#4D271D]/30",
+      pillBg: "bg-[#FFEBEB] dark:bg-[#3D1E1E] text-[#EF4444]",
+      divider: "border-[#FFE2E2]/60 dark:border-[#382620]/60",
+      button: "border border-[#FF6A2E]/30 text-[#FF6A2E] dark:text-[#F37338] bg-white/70 dark:bg-stone-900/60 hover:bg-[#FF6A2E] hover:text-white dark:hover:bg-[#F37338] dark:hover:text-stone-950",
+    },
+    {
+      cardBg: "from-[#F6F4FF] to-[#EFF0FE] dark:from-[#1A1A2B] dark:to-[#171626]",
+      cardBorder: "border-[#E0DCFE] dark:border-[#2B294A]",
+      blob1: "bg-[#E5E0FF]/45 dark:bg-[#252144]/40",
+      blob2: "bg-[#ECE9FF]/65 dark:bg-[#2F295B]/30",
+      pillBg: "bg-[#F0EDFF] dark:bg-[#2B244D] text-[#6366F1]",
+      divider: "border-[#E0DCFE]/60 dark:border-[#2D2A4A]/60",
+      button: "bg-[#6366F1] hover:bg-[#4F46E5] text-white",
+    },
+  ]
 
   const [currentTab, setCurrentTab] = useState<"dashboard" | "rooms" | "calendar" | "recordings" | "contacts">("dashboard")
+
+  // Contacts state
+  const [contacts, setContacts] = useState<DjangoUser[]>([])
+  const [contactsLoading, setContactsLoading] = useState(false)
+  const [contactSearch, setContactSearch] = useState("")
+
+  const fetchContacts = useCallback(async (search?: string) => {
+    setContactsLoading(true)
+    try {
+      const data = await api.listUsers(search)
+      setContacts(data)
+    } catch {
+      toast.error("Failed to load contacts")
+    } finally {
+      setContactsLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (currentTab === "contacts") fetchContacts(contactSearch)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentTab])
+
+  const callContact = async (contact: DjangoUser) => {
+    const loadingToast = toast.loading(`Starting a call with ${contact.first_name || contact.username}...`)
+    try {
+      const room = await api.createRoom(`Call with ${contact.first_name || contact.username}`, "")
+      toast.dismiss(loadingToast)
+      const inviteUrl = `${window.location.origin}/room/${room.id}`
+      navigator.clipboard.writeText(inviteUrl).catch(() => {})
+      toast.success("Room created — invite link copied to clipboard!")
+      onJoinRoom(room.id)
+    } catch {
+      toast.dismiss(loadingToast)
+      toast.error("Failed to start call")
+    }
+  }
+
+  // Calendar / scheduled meetings state
+  const today = new Date()
+  const [currentMonth, setCurrentMonth] = useState(today.getMonth())
+  const [currentYear, setCurrentYear] = useState(today.getFullYear())
+  const [meetings, setMeetings] = useState<ScheduledMeeting[]>([])
+  const [meetingsLoading, setMeetingsLoading] = useState(false)
+  const scheduledRoomIds = new Set(meetings.map(m => m.room_id))
+  const scheduledCount = rooms.filter(r => scheduledRoomIds.has(r.id)).length
+  const instantCount = rooms.length - scheduledCount
+  const upcomingMeetings = meetings
+    .filter(m => new Date(m.scheduled_at) >= new Date())
+    .sort((a, b) => new Date(a.scheduled_at).getTime() - new Date(b.scheduled_at).getTime())
+  const [meetingDialogOpen, setMeetingDialogOpen] = useState(false)
+  const [meetingDialogDate, setMeetingDialogDate] = useState<Date | null>(null)
+  const [meetingTitle, setMeetingTitle] = useState("")
+  const [meetingDesc, setMeetingDesc] = useState("")
+  const [meetingTime, setMeetingTime] = useState("10:00")
+  const [meetingDuration, setMeetingDuration] = useState(60)
+  const [creatingMeeting, setCreatingMeeting] = useState(false)
+
+  const fetchMeetings = useCallback(async () => {
+    setMeetingsLoading(true)
+    try {
+      const data = await api.listMeetings()
+      setMeetings(data)
+    } catch {
+      toast.error("Failed to load calendar")
+    } finally {
+      setMeetingsLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (currentTab === "calendar" || currentTab === "dashboard") fetchMeetings()
+  }, [currentTab, fetchMeetings])
+
+  const meetingColors = [
+    { bg: "bg-[#FFF5F5] dark:bg-[#3B221B]", text: "text-[#FF6A2E] dark:text-[#F37338]" },
+    { bg: "bg-[#F5F3FF] dark:bg-[#281D3E]", text: "text-[#7C3AED] dark:text-[#A78BFA]" },
+    { bg: "bg-[#EFF6FF] dark:bg-[#1E293B]", text: "text-[#3B82F6] dark:text-[#60A5FA]" },
+    { bg: "bg-[#FFF7ED] dark:bg-[#3B2519]", text: "text-[#F97316] dark:text-[#FDBA74]" },
+  ]
+
+  const hashToIndex = (id: string, mod: number) => {
+    let hash = 0
+    for (let i = 0; i < id.length; i++) hash = (hash * 31 + id.charCodeAt(i)) >>> 0
+    return hash % mod
+  }
+
+  const openNewMeetingDialog = (date: Date) => {
+    setMeetingDialogDate(date)
+    setMeetingTitle("")
+    setMeetingDesc("")
+    setMeetingTime("10:00")
+    setMeetingDuration(60)
+    setMeetingDialogOpen(true)
+  }
+
+  const submitNewMeeting = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!meetingTitle.trim() || !meetingDialogDate) return
+    setCreatingMeeting(true)
+    try {
+      const [hours, minutes] = meetingTime.split(":").map(Number)
+      const scheduledAt = new Date(meetingDialogDate)
+      scheduledAt.setHours(hours || 0, minutes || 0, 0, 0)
+      await api.createMeeting(meetingTitle.trim(), meetingDesc.trim(), scheduledAt.toISOString(), meetingDuration)
+      toast.success("Meeting scheduled!")
+      setMeetingDialogOpen(false)
+      fetchMeetings()
+      fetchRooms()
+    } catch {
+      toast.error("Failed to schedule meeting")
+    } finally {
+      setCreatingMeeting(false)
+    }
+  }
+
+  const cancelMeeting = async (meetingId: string) => {
+    try {
+      await api.deleteMeeting(meetingId)
+      toast.success("Meeting cancelled")
+      fetchMeetings()
+      fetchRooms()
+    } catch {
+      toast.error("Failed to cancel meeting")
+    }
+  }
+
+  const meetingsByDay = new Map<string, ScheduledMeeting[]>()
+  for (const meeting of meetings) {
+    const d = new Date(meeting.scheduled_at)
+    if (d.getFullYear() === currentYear && d.getMonth() === currentMonth) {
+      const key = String(d.getDate())
+      const list = meetingsByDay.get(key) || []
+      list.push(meeting)
+      meetingsByDay.set(key, list)
+    }
+  }
+
+  const goToPrevMonth = () => {
+    if (currentMonth === 0) {
+      setCurrentMonth(11)
+      setCurrentYear(currentYear - 1)
+    } else {
+      setCurrentMonth(currentMonth - 1)
+    }
+  }
+
+  const goToNextMonth = () => {
+    if (currentMonth === 11) {
+      setCurrentMonth(0)
+      setCurrentYear(currentYear + 1)
+    } else {
+      setCurrentMonth(currentMonth + 1)
+    }
+  }
+
+  const monthLabel = new Date(currentYear, currentMonth, 1).toLocaleDateString("en-US", { month: "long", year: "numeric" })
+  const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate()
+  const firstWeekday = new Date(currentYear, currentMonth, 1).getDay()
+  const isCurrentRealMonth = currentYear === today.getFullYear() && currentMonth === today.getMonth()
+
+  // Recordings state
+  const [recordings, setRecordings] = useState<Recording[]>([])
+  const [recordingsLoading, setRecordingsLoading] = useState(false)
+  const [playbackRecording, setPlaybackRecording] = useState<Recording | null>(null)
+  const [playbackUrl, setPlaybackUrl] = useState<string | null>(null)
+  const [playbackLoading, setPlaybackLoading] = useState(false)
+
+  const fetchRecordings = useCallback(async () => {
+    setRecordingsLoading(true)
+    try {
+      const data = await api.listAllRecordings()
+      setRecordings(data)
+    } catch {
+      toast.error("Failed to load recordings")
+    } finally {
+      setRecordingsLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (currentTab === "recordings") fetchRecordings()
+  }, [currentTab, fetchRecordings])
+
+  const formatDuration = (totalSeconds: number) => {
+    const h = Math.floor(totalSeconds / 3600)
+    const m = Math.floor((totalSeconds % 3600) / 60)
+    const s = totalSeconds % 60
+    const pad = (n: number) => String(n).padStart(2, "0")
+    return h > 0 ? `${pad(h)}:${pad(m)}:${pad(s)}` : `${pad(m)}:${pad(s)}`
+  }
+
+  const formatFileSize = (bytes: number) => {
+    if (bytes >= 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024 * 1024)).toFixed(1)} GB`
+    if (bytes >= 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(0)} MB`
+    return `${(bytes / 1024).toFixed(0)} KB`
+  }
+
+  const decryptRecordingToUrl = async (recording: Recording): Promise<string | null> => {
+    try {
+      const encryptedBlob = await api.downloadRecording(recording.file_url)
+      const key = await deriveKey(recording.room_id)
+      const decryptedBlob = await decryptFile(encryptedBlob, recording.iv || "", recording.mime_type, key)
+      return URL.createObjectURL(decryptedBlob)
+    } catch {
+      toast.error("Failed to decrypt recording")
+      return null
+    }
+  }
+
+  const watchRecording = async (recording: Recording) => {
+    setPlaybackRecording(recording)
+    setPlaybackLoading(true)
+    const url = await decryptRecordingToUrl(recording)
+    setPlaybackUrl(url)
+    setPlaybackLoading(false)
+  }
+
+  const closePlayback = () => {
+    if (playbackUrl) URL.revokeObjectURL(playbackUrl)
+    setPlaybackRecording(null)
+    setPlaybackUrl(null)
+  }
+
+  const downloadRecording = async (recording: Recording) => {
+    const loadingToast = toast.loading("Decrypting recording...")
+    const url = await decryptRecordingToUrl(recording)
+    toast.dismiss(loadingToast)
+    if (!url) return
+    const a = document.createElement("a")
+    a.href = url
+    a.download = `${recording.display_name || "recording"}.webm`
+    a.click()
+    URL.revokeObjectURL(url)
+    toast.success("Recording downloaded")
+  }
+
+  const deleteRecording = async (recording: Recording) => {
+    try {
+      await api.deleteRecording(recording.id)
+      setRecordings((prev) => prev.filter((r) => r.id !== recording.id))
+      toast.success("Recording deleted")
+    } catch {
+      toast.error("Failed to delete recording")
+    }
+  }
 
   // Navigation Links definition
   const navItems = [
@@ -346,21 +581,6 @@ export default function HomePage({ user, onJoinRoom, onSignOut }: Props) {
               <span className="sr-only">Toggle theme</span>
             </Button>
 
-            {/* Notification button */}
-            <div className="relative">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="w-[46px] h-[46px] rounded-full bg-[#F4F4F4]/70 dark:bg-[#262421]/70 hover:bg-[#F4F4F4] dark:hover:bg-[#262421] text-stone-600 dark:text-stone-300 border border-[#E5DED5]/20 dark:border-none cursor-pointer"
-                onClick={() => toast.info("You have 3 unread meeting alerts.")}
-              >
-                <Bell className="w-[19px] h-[19px] text-stone-600 dark:text-stone-300" />
-              </Button>
-              <span className="absolute top-[3px] right-[3px] w-5 h-5 bg-[#FF2E63] text-white text-[10px] font-bold rounded-full flex items-center justify-center ring-2 ring-white dark:ring-[#1D1B19]">
-                3
-              </span>
-            </div>
-
             {/* Separator */}
             <div className="w-[1px] h-8 bg-[#E5DED5]/50 dark:bg-[#2E2B27] hidden sm:block" />
 
@@ -431,192 +651,104 @@ export default function HomePage({ user, onJoinRoom, onSignOut }: Props) {
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
                   {/* Left: Live cards & Upcoming meetings */}
                   <div className="lg:col-span-8 space-y-8">
-                    {/* Live Cards Row */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      {isDesignSyncMatch && (
-                        <div 
-                          onClick={() => handleJoinMockRoom("Design Sync", "Weekly design team sync")}
-                          className="group relative overflow-hidden bg-gradient-to-br from-[#FFF6F6] to-[#FFF1F1] dark:from-[#251B18] dark:to-[#1F1816] border border-[#FFE2E2] dark:border-[#382620] rounded-3xl p-6 shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer"
-                        >
-                          <div className="absolute -bottom-10 -right-10 w-44 h-44 rounded-full bg-[#FFD6D6]/45 dark:bg-[#3E211A]/40 blur-md pointer-events-none group-hover:scale-110 transition-transform duration-500" />
-                          <div className="absolute bottom-6 -right-16 w-36 h-36 rounded-full bg-[#FFE2E2]/65 dark:bg-[#4D271D]/30 blur-xs pointer-events-none group-hover:translate-x-2 transition-transform duration-500" />
-                          
-                          <div className="flex items-center justify-between mb-8 relative z-10">
-                            <div className="flex items-center gap-1.5 py-1 px-3 rounded-full bg-[#FFEBEB] dark:bg-[#3D1E1E] text-[#EF4444] text-[13px] font-bold">
-                              <Users className="w-3.5 h-3.5" />
-                              3
-                            </div>
-                            <div className="flex items-center gap-1.5 py-1 px-3 rounded-full bg-[#E6F9F1] dark:bg-[#1B362F] text-[#10B981] text-[13px] font-bold">
-                              <span className="w-1.5 h-1.5 rounded-full bg-[#10B981] animate-pulse" />
-                              Live
-                            </div>
-                          </div>
+                    {/* Live Cards Row — user-pinned rooms, featured in this style */}
+                    {pinnedRooms.length > 0 ? (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {pinnedRooms.slice(0, 2).map((room, idx) => {
+                          const theme = cardThemes[idx % cardThemes.length]
+                          return (
+                            <div
+                              key={room.id}
+                              onClick={() => onJoinRoom(room.id)}
+                              className={cn("group relative overflow-hidden bg-gradient-to-br rounded-3xl p-6 shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer border", theme.cardBg, theme.cardBorder)}
+                            >
+                              <div className={cn("absolute -bottom-10 -right-10 w-44 h-44 rounded-full blur-md pointer-events-none group-hover:scale-110 transition-transform duration-500", theme.blob1)} />
+                              <div className={cn("absolute bottom-6 -right-16 w-36 h-36 rounded-full blur-xs pointer-events-none group-hover:translate-x-2 transition-transform duration-500", theme.blob2)} />
 
-                          <div className="relative z-10 mb-8">
-                            <h3 className="text-2xl font-bold text-stone-900 dark:text-white leading-tight">Design Sync</h3>
-                            <p className="text-[14px] text-stone-500 dark:text-stone-400 mt-1">Weekly design team sync</p>
-                          </div>
-
-                          <div className="flex items-center justify-between relative z-10 mt-auto pt-4 border-t border-[#FFE2E2]/60 dark:border-[#382620]/60">
-                            <div className="flex items-center gap-3.5">
-                              <div className="flex items-center gap-1 text-stone-500 dark:text-stone-400 text-xs font-semibold">
-                                <Clock className="w-3.5 h-3.5 text-stone-400" />
-                                Today, 10:30 AM
+                              <div className="flex items-center justify-between mb-8 relative z-10">
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); togglePinRoom(room) }}
+                                  className={cn("flex items-center gap-1.5 py-1 px-3 rounded-full text-[13px] font-bold cursor-pointer", theme.pillBg)}
+                                  title="Unpin from dashboard"
+                                >
+                                  <Pin className="w-3.5 h-3.5 fill-current" />
+                                  Pinned
+                                </button>
+                                {room.is_active && (
+                                  <div className="flex items-center gap-1.5 py-1 px-3 rounded-full bg-[#E6F9F1] dark:bg-[#1B362F] text-[#10B981] text-[13px] font-bold">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-[#10B981]" />
+                                    Active
+                                  </div>
+                                )}
                               </div>
-                              <div className="w-[1.5px] h-3 bg-stone-300 dark:bg-stone-850" />
-                              <div className="flex items-center gap-1 text-stone-500 dark:text-stone-400 text-xs font-semibold">
-                                <Clock className="w-3.5 h-3.5 text-stone-400" />
-                                32:15
+
+                              <div className="relative z-10 mb-8">
+                                <h3 className="text-2xl font-bold text-stone-900 dark:text-white leading-tight">{room.name}</h3>
+                                <p className="text-[14px] text-stone-500 dark:text-stone-400 mt-1">{room.description || "No description"}</p>
                               </div>
-                            </div>
-                          </div>
 
-                          <div className="flex items-center justify-between relative z-10 mt-5">
-                            <div className="flex items-center">
-                              <div className="flex -space-x-2.5">
-                                <Avatar className="w-8 h-8 ring-2 ring-white dark:ring-stone-950">
-                                  <AvatarImage src={avatars.user1} />
-                                  <AvatarFallback>A</AvatarFallback>
-                                </Avatar>
-                                <Avatar className="w-8 h-8 ring-2 ring-white dark:ring-stone-950">
-                                  <AvatarImage src={avatars.user2} />
-                                  <AvatarFallback>B</AvatarFallback>
-                                </Avatar>
-                                <Avatar className="w-8 h-8 ring-2 ring-white dark:ring-stone-950">
-                                  <AvatarImage src={avatars.user3} />
-                                  <AvatarFallback>C</AvatarFallback>
-                                </Avatar>
+                              <div className={cn("flex items-center justify-between relative z-10 mt-auto pt-4 border-t", theme.divider)}>
+                                <div className="flex items-center gap-1 text-stone-500 dark:text-stone-400 text-xs font-semibold">
+                                  <Clock className="w-3.5 h-3.5 text-stone-400" />
+                                  Created {new Date(room.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
+                                </div>
                               </div>
-                              <span className="ml-2.5 text-xs font-bold text-[#FF6A2E] dark:text-[#F37338] py-0.5 px-2 bg-[#FFF0ED] dark:bg-[#3C221D] rounded-full">
-                                +2
-                              </span>
-                            </div>
 
-                            <div className="flex items-center gap-2">
-                              <button className="flex items-center gap-1 px-4.5 py-2 rounded-full border border-[#FF6A2E]/30 text-[#FF6A2E] dark:text-[#F37338] bg-white/70 dark:bg-stone-900/60 hover:bg-[#FF6A2E] hover:text-white dark:hover:bg-[#F37338] dark:hover:text-stone-950 text-xs font-bold transition-all cursor-pointer">
-                                Join Room
-                                <ArrowRight className="w-3.5 h-3.5" />
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-
-                      {isProductReviewMatch && (
-                        <div 
-                          onClick={() => handleJoinMockRoom("Product Review", "Discuss new features and roadmap")}
-                          className="group relative overflow-hidden bg-gradient-to-br from-[#F6F4FF] to-[#EFF0FE] dark:from-[#1A1A2B] dark:to-[#171626] border border-[#E0DCFE] dark:border-[#2B294A] rounded-3xl p-6 shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer"
-                        >
-                          <div className="absolute -bottom-10 -right-10 w-44 h-44 rounded-full bg-[#E5E0FF]/45 dark:bg-[#252144]/40 blur-md pointer-events-none group-hover:scale-110 transition-transform duration-500" />
-                          <div className="absolute bottom-6 -right-16 w-36 h-36 rounded-full bg-[#ECE9FF]/65 dark:bg-[#2F295B]/30 blur-xs pointer-events-none group-hover:translate-x-2 transition-transform duration-500" />
-                          
-                          <div className="flex items-center justify-between mb-8 relative z-10">
-                            <div className="flex items-center gap-1.5 py-1 px-3 rounded-full bg-[#F0EDFF] dark:bg-[#2B244D] text-[#6366F1] text-[13px] font-bold">
-                              <Users className="w-3.5 h-3.5" />
-                              5
-                            </div>
-                            <div className="flex items-center gap-1.5 py-1 px-3 rounded-full bg-[#E6F9F1] dark:bg-[#1B362F] text-[#10B981] text-[13px] font-bold">
-                              <span className="w-1.5 h-1.5 rounded-full bg-[#10B981] animate-pulse" />
-                              Live
-                            </div>
-                          </div>
-
-                          <div className="relative z-10 mb-8">
-                            <h3 className="text-2xl font-bold text-stone-900 dark:text-white leading-tight">Product Review</h3>
-                            <p className="text-[14px] text-stone-500 dark:text-stone-400 mt-1">Discuss new features and roadmap</p>
-                          </div>
-
-                          <div className="flex items-center justify-between relative z-10 mt-auto pt-4 border-t border-[#E0DCFE]/60 dark:border-[#2D2A4A]/60">
-                            <div className="flex items-center gap-3.5">
-                              <div className="flex items-center gap-1 text-stone-500 dark:text-stone-400 text-xs font-semibold">
-                                <Clock className="w-3.5 h-3.5 text-stone-400" />
-                                Today, 02:00 PM
-                              </div>
-                              <div className="w-[1.5px] h-3 bg-stone-300 dark:bg-stone-850" />
-                              <div className="flex items-center gap-1 text-stone-500 dark:text-stone-400 text-xs font-semibold">
-                                <Clock className="w-3.5 h-3.5 text-stone-400" />
-                                1:05:42
+                              <div className="flex items-center justify-end relative z-10 mt-5">
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); onJoinRoom(room.id) }}
+                                  className={cn("flex items-center gap-1 px-4.5 py-2 rounded-full text-xs font-bold transition-all cursor-pointer", theme.button)}
+                                >
+                                  Join Room
+                                  <ArrowRight className="w-3.5 h-3.5" />
+                                </button>
                               </div>
                             </div>
-                          </div>
-
-                          <div className="flex items-center justify-between relative z-10 mt-5">
-                            <div className="flex items-center">
-                              <div className="flex -space-x-2.5">
-                                <Avatar className="w-8 h-8 ring-2 ring-white dark:ring-stone-950">
-                                  <AvatarImage src={avatars.user4} />
-                                  <AvatarFallback>D</AvatarFallback>
-                                </Avatar>
-                                <Avatar className="w-8 h-8 ring-2 ring-white dark:ring-stone-950">
-                                  <AvatarImage src={avatars.user5} />
-                                  <AvatarFallback>E</AvatarFallback>
-                                </Avatar>
-                                <Avatar className="w-8 h-8 ring-2 ring-white dark:ring-stone-950">
-                                  <AvatarImage src={avatars.user6} />
-                                  <AvatarFallback>F</AvatarFallback>
-                                </Avatar>
-                              </div>
-                              <span className="ml-2.5 text-xs font-bold text-[#6366F1] dark:text-[#8B5CF6] py-0.5 px-2 bg-[#EEF2FF] dark:bg-[#20203D] rounded-full">
-                                +3
-                              </span>
-                            </div>
-
-                            <div className="flex items-center gap-2">
-                              <button className="flex items-center gap-1 px-4.5 py-2 rounded-full bg-[#6366F1] hover:bg-[#4F46E5] text-white text-xs font-bold transition-all shadow-sm shadow-[#6366F1]/10 cursor-pointer">
-                                Join Room
-                                <ArrowRight className="w-3.5 h-3.5" />
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                    </div>
+                          )
+                        })}
+                      </div>
+                    ) : (
+                      <div className="bg-white dark:bg-[#1D1B19] border border-dashed border-[#E5DED5] dark:border-[#2E2B27] rounded-3xl p-6 text-center">
+                        <p className="text-[14px] text-stone-500 dark:text-stone-400">
+                          Pin a room from the <span className="font-semibold text-stone-700 dark:text-stone-300">Meeting Rooms</span> tab to feature it here.
+                        </p>
+                      </div>
+                    )}
 
                     {/* Upcoming Scheduled Meetings */}
                     <div className="bg-white dark:bg-[#1D1B19] border border-[#E5DED5]/40 dark:border-[#2E2B27] rounded-3xl p-6 shadow-sm">
                       <h3 className="text-lg font-bold text-stone-900 dark:text-white mb-6">Upcoming Scheduled Meetings</h3>
                       <div className="space-y-4">
-                        {isMarketingMatch && (
-                          <div 
-                            onClick={() => handleJoinMockRoom("Marketing Strategy", "Discuss Q3 marketing plan and goals")}
-                            className="group flex flex-col md:flex-row md:items-center justify-between gap-4 p-5 bg-[#FAFAFA] dark:bg-[#141312] border border-[#E5DED5]/20 dark:border-[#2E2B27]/40 rounded-2xl transition-all cursor-pointer hover:bg-stone-50 dark:hover:bg-stone-900/40"
+                        {upcomingMeetings.length === 0 && (
+                          <p className="text-[14px] text-stone-400 dark:text-stone-500 text-center py-4">
+                            No upcoming meetings — schedule one from the Calendar tab or Quick Actions.
+                          </p>
+                        )}
+                        {upcomingMeetings.slice(0, 5).map((meeting) => (
+                          <div
+                            key={meeting.id}
+                            className="group flex flex-col md:flex-row md:items-center justify-between gap-4 p-5 bg-[#FAFAFA] dark:bg-[#141312] border border-[#E5DED5]/20 dark:border-[#2E2B27]/40 rounded-2xl transition-all hover:bg-stone-50 dark:hover:bg-stone-900/40"
                           >
-                            <div className="flex items-center gap-4">
+                            <div className="flex items-center gap-4 min-w-0">
                               <div className="w-[46px] h-[46px] rounded-2xl bg-[#EEF2FF] dark:bg-[#20203D] flex items-center justify-center text-[#6366F1] shrink-0">
                                 <Users className="w-5 h-5" />
                               </div>
-                              <div>
-                                <h4 className="text-[15px] font-bold text-stone-900 dark:text-white group-hover:text-[#FF6A2E] dark:group-hover:text-[#F37338] transition-colors leading-tight">Marketing Strategy</h4>
-                                <p className="text-[13px] text-stone-400 dark:text-stone-500 mt-0.5">Discuss Q3 marketing plan and goals</p>
+                              <div className="min-w-0">
+                                <h4 className="text-[15px] font-bold text-stone-900 dark:text-white group-hover:text-[#FF6A2E] dark:group-hover:text-[#F37338] transition-colors leading-tight truncate">{meeting.room_name}</h4>
+                                <p className="text-[13px] text-stone-400 dark:text-stone-500 mt-0.5 truncate">{meeting.room_description || "No description"}</p>
                               </div>
                             </div>
-                            <div className="flex flex-row items-center justify-between md:justify-end gap-5">
-                              <span className="text-[13px] font-semibold text-stone-500 dark:text-stone-400">Jul 6, 11:00 AM</span>
-                              <button className="py-2 px-4.5 text-xs font-bold rounded-xl border border-stone-200 dark:border-stone-850 hover:bg-stone-100 dark:hover:bg-stone-900 text-stone-800 dark:text-stone-300 cursor-pointer">Join</button>
+                            <div className="flex flex-row items-center justify-between md:justify-end gap-3 shrink-0">
+                              <span className="text-[13px] font-semibold text-stone-500 dark:text-stone-400 whitespace-nowrap">
+                                {new Date(meeting.scheduled_at).toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
+                              </span>
+                              <button onClick={() => onJoinRoom(meeting.room_id)} className="py-2 px-4.5 text-xs font-bold rounded-xl border border-stone-200 dark:border-stone-850 hover:bg-stone-100 dark:hover:bg-stone-900 text-stone-800 dark:text-stone-300 cursor-pointer">Join</button>
+                              <button onClick={() => cancelMeeting(meeting.id)} className="p-2 rounded-xl text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 cursor-pointer" title="Cancel meeting">
+                                <Trash2 className="w-4 h-4" />
+                              </button>
                             </div>
                           </div>
-                        )}
-
-                        {isClientOnboardingMatch && (
-                          <div 
-                            onClick={() => handleJoinMockRoom("Client Onboarding", "Welcome and onboarding new client")}
-                            className="group flex flex-col md:flex-row md:items-center justify-between gap-4 p-5 bg-[#FAFAFA] dark:bg-[#141312] border border-[#E5DED5]/20 dark:border-[#2E2B27]/40 rounded-2xl transition-all cursor-pointer hover:bg-stone-50 dark:hover:bg-stone-900/40"
-                          >
-                            <div className="flex items-center gap-4">
-                              <div className="w-[46px] h-[46px] rounded-2xl bg-[#FFF7ED] dark:bg-[#3B2519] flex items-center justify-center text-[#F97316] shrink-0">
-                                <Folder className="w-5 h-5" />
-                              </div>
-                              <div>
-                                <h4 className="text-[15px] font-bold text-stone-900 dark:text-white group-hover:text-[#FF6A2E] dark:group-hover:text-[#F37338] transition-colors leading-tight">Client Onboarding</h4>
-                                <p className="text-[13px] text-stone-400 dark:text-stone-500 mt-0.5">Welcome and onboarding new client</p>
-                              </div>
-                            </div>
-                            <div className="flex flex-row items-center justify-between md:justify-end gap-5">
-                              <span className="text-[13px] font-semibold text-stone-500 dark:text-stone-400">Jul 8, 03:00 PM</span>
-                              <button className="py-2 px-4.5 text-xs font-bold rounded-xl border border-stone-200 dark:border-stone-850 hover:bg-stone-100 dark:hover:bg-stone-900 text-stone-800 dark:text-stone-300 cursor-pointer">Join</button>
-                            </div>
-                          </div>
-                        )}
+                        ))}
                       </div>
                     </div>
                   </div>
@@ -627,12 +759,16 @@ export default function HomePage({ user, onJoinRoom, onSignOut }: Props) {
                     <div className="bg-white dark:bg-[#1D1B19] border border-[#E5DED5]/40 dark:border-[#2E2B27] rounded-3xl p-6 shadow-sm">
                       <h3 className="text-lg font-bold text-stone-900 dark:text-white mb-6">Your Rooms</h3>
                       <div className="flex justify-center mb-6">
-                        <div 
+                        <div
                           className="relative w-36 h-36 rounded-full flex items-center justify-center shadow-inner"
-                          style={{ background: 'conic-gradient(#10B981 0% 33.3%, #F97316 33.3% 75%, #8B5CF6 75% 100%)' }}
+                          style={{
+                            background: rooms.length === 0
+                              ? '#E5DED5'
+                              : `conic-gradient(#10B981 0% ${(scheduledCount / rooms.length) * 100}%, #F97316 ${(scheduledCount / rooms.length) * 100}% 100%)`
+                          }}
                         >
                           <div className="w-[104px] h-[104px] rounded-full bg-white dark:bg-[#1D1B19] flex flex-col items-center justify-center">
-                            <span className="text-3xl font-extrabold text-stone-950 dark:text-white">12</span>
+                            <span className="text-3xl font-extrabold text-stone-950 dark:text-white">{rooms.length}</span>
                             <span className="text-[12px] text-stone-400 dark:text-stone-500 font-semibold tracking-wide">Total</span>
                           </div>
                         </div>
@@ -641,23 +777,23 @@ export default function HomePage({ user, onJoinRoom, onSignOut }: Props) {
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
                             <span className="w-2.5 h-2.5 rounded-full bg-[#10B981]" />
-                            <span className="text-[14px] font-medium text-stone-600 dark:text-stone-400">Live</span>
+                            <span className="text-[14px] font-medium text-stone-600 dark:text-stone-400">Scheduled</span>
                           </div>
-                          <span className="text-[14px] font-bold text-stone-900 dark:text-white">4</span>
+                          <span className="text-[14px] font-bold text-stone-900 dark:text-white">{scheduledCount}</span>
                         </div>
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
                             <span className="w-2.5 h-2.5 rounded-full bg-[#F97316]" />
-                            <span className="text-[14px] font-medium text-stone-600 dark:text-stone-400">Upcoming</span>
+                            <span className="text-[14px] font-medium text-stone-600 dark:text-stone-400">Instant</span>
                           </div>
-                          <span className="text-[14px] font-bold text-stone-900 dark:text-white">5</span>
+                          <span className="text-[14px] font-bold text-stone-900 dark:text-white">{instantCount}</span>
                         </div>
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
-                            <span className="w-2.5 h-2.5 rounded-full bg-[#8B5CF6]" />
-                            <span className="text-[14px] font-medium text-stone-600 dark:text-stone-400">Completed</span>
+                            <Pin className="w-2.5 h-2.5 text-[#8B5CF6] fill-current" />
+                            <span className="text-[14px] font-medium text-stone-600 dark:text-stone-400">Pinned</span>
                           </div>
-                          <span className="text-[14px] font-bold text-stone-900 dark:text-white">3</span>
+                          <span className="text-[14px] font-bold text-stone-900 dark:text-white">{pinnedRooms.length}</span>
                         </div>
                       </div>
                     </div>
@@ -818,13 +954,25 @@ export default function HomePage({ user, onJoinRoom, onSignOut }: Props) {
                               </div>
                             </div>
                             {String(room.created_by) === user.id && (
-                              <button 
-                                onClick={(e) => { e.stopPropagation(); deleteRoom(room.id); }}
-                                className="p-2 rounded-lg hover:bg-red-50 text-red-500 dark:hover:bg-red-950/20 cursor-pointer transition-colors"
-                                title="Delete Room"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
+                              <div className="flex items-center gap-1 shrink-0">
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); togglePinRoom(room); }}
+                                  className={cn(
+                                    "p-2 rounded-lg cursor-pointer transition-colors",
+                                    room.pinned ? "text-[#FF6A2E] hover:bg-[#FFF0ED] dark:hover:bg-[#3C221D]" : "text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-900"
+                                  )}
+                                  title={room.pinned ? "Unpin from dashboard" : "Pin to dashboard"}
+                                >
+                                  <Pin className={cn("w-4 h-4", room.pinned && "fill-current")} />
+                                </button>
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); deleteRoom(room.id); }}
+                                  className="p-2 rounded-lg hover:bg-red-50 text-red-500 dark:hover:bg-red-950/20 cursor-pointer transition-colors"
+                                  title="Delete Room"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              </div>
                             )}
                           </div>
                           <div className="flex items-center justify-between mt-6 pt-4 border-t border-[#E5DED5]/20 dark:border-[#2E2B27]/20">
@@ -866,16 +1014,84 @@ export default function HomePage({ user, onJoinRoom, onSignOut }: Props) {
                   </p>
                 </div>
 
+                {/* New Meeting Dialog */}
+                <Dialog open={meetingDialogOpen} onOpenChange={setMeetingDialogOpen}>
+                  <DialogContent className="rounded-2xl max-w-md bg-white dark:bg-[#1D1B19] border border-[#E5DED5]/50 dark:border-[#2E2B27]">
+                    <DialogHeader>
+                      <DialogTitle className="text-xl font-bold">Schedule a meeting</DialogTitle>
+                      <DialogDescription className="text-stone-500 dark:text-stone-400">
+                        {meetingDialogDate?.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
+                      </DialogDescription>
+                    </DialogHeader>
+                    <form onSubmit={submitNewMeeting}>
+                      <div className="space-y-4 py-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="meeting-title" className="text-sm font-semibold">Title</Label>
+                          <Input
+                            id="meeting-title"
+                            placeholder="Design Sync"
+                            value={meetingTitle}
+                            onChange={(e) => setMeetingTitle(e.target.value)}
+                            required
+                            className="rounded-xl border-[#E5DED5] dark:border-[#2E2B27] bg-[#F4F4F4]/30 dark:bg-stone-900"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="meeting-desc" className="text-sm font-semibold">Description (optional)</Label>
+                          <Input
+                            id="meeting-desc"
+                            placeholder="Brief description of this meeting"
+                            value={meetingDesc}
+                            onChange={(e) => setMeetingDesc(e.target.value)}
+                            className="rounded-xl border-[#E5DED5] dark:border-[#2E2B27] bg-[#F4F4F4]/30 dark:bg-stone-900"
+                          />
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="meeting-time" className="text-sm font-semibold">Time</Label>
+                            <Input
+                              id="meeting-time"
+                              type="time"
+                              value={meetingTime}
+                              onChange={(e) => setMeetingTime(e.target.value)}
+                              required
+                              className="rounded-xl border-[#E5DED5] dark:border-[#2E2B27] bg-[#F4F4F4]/30 dark:bg-stone-900"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="meeting-duration" className="text-sm font-semibold">Duration (min)</Label>
+                            <Input
+                              id="meeting-duration"
+                              type="number"
+                              min={15}
+                              step={15}
+                              value={meetingDuration}
+                              onChange={(e) => setMeetingDuration(Number(e.target.value) || 60)}
+                              className="rounded-xl border-[#E5DED5] dark:border-[#2E2B27] bg-[#F4F4F4]/30 dark:bg-stone-900"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                      <DialogFooter className="gap-2 sm:gap-0">
+                        <Button type="button" variant="ghost" onClick={() => setMeetingDialogOpen(false)} className="rounded-xl">Cancel</Button>
+                        <Button type="submit" disabled={creatingMeeting} className="bg-[#FF6A2E] hover:bg-[#FF6A2E]/90 text-white rounded-xl">
+                          {creatingMeeting ? "Scheduling..." : "Schedule"}
+                        </Button>
+                      </DialogFooter>
+                    </form>
+                  </DialogContent>
+                </Dialog>
+
                 {/* Calendar Layout */}
                 <div className="bg-white dark:bg-[#1D1B19] border border-[#E5DED5]/40 dark:border-[#2E2B27] rounded-3xl p-6 shadow-sm">
                   {/* Calendar Month Header */}
                   <div className="flex items-center justify-between mb-6">
-                    <h3 className="text-xl font-bold text-stone-900 dark:text-white">July 2026</h3>
+                    <h3 className="text-xl font-bold text-stone-900 dark:text-white">{monthLabel}</h3>
                     <div className="flex gap-2">
-                      <button onClick={() => toast.info("Viewing previous month.")} className="p-2 border border-stone-200 dark:border-[#2E2B27] hover:bg-stone-50 dark:hover:bg-stone-900 rounded-xl cursor-pointer">
+                      <button onClick={goToPrevMonth} className="p-2 border border-stone-200 dark:border-[#2E2B27] hover:bg-stone-50 dark:hover:bg-stone-900 rounded-xl cursor-pointer">
                         <ChevronRight className="w-4 h-4 rotate-180" />
                       </button>
-                      <button onClick={() => toast.info("Viewing next month.")} className="p-2 border border-stone-200 dark:border-[#2E2B27] hover:bg-stone-50 dark:hover:bg-stone-900 rounded-xl cursor-pointer">
+                      <button onClick={goToNextMonth} className="p-2 border border-stone-200 dark:border-[#2E2B27] hover:bg-stone-50 dark:hover:bg-stone-900 rounded-xl cursor-pointer">
                         <ChevronRight className="w-4 h-4" />
                       </button>
                     </div>
@@ -887,50 +1103,70 @@ export default function HomePage({ user, onJoinRoom, onSignOut }: Props) {
                   </div>
 
                   <div className="grid grid-cols-7 gap-2">
-                    {/* Render empty offset days (1, 2, 3 offset for July 2026 starts on Wednesday) */}
-                    <div className="h-28 bg-[#FAFAFA]/50 dark:bg-stone-900/10 rounded-xl border border-[#E5DED5]/20 dark:border-[#2E2B27]/20 p-2 text-stone-300">28</div>
-                    <div className="h-28 bg-[#FAFAFA]/50 dark:bg-stone-900/10 rounded-xl border border-[#E5DED5]/20 dark:border-[#2E2B27]/20 p-2 text-stone-300">29</div>
-                    <div className="h-28 bg-[#FAFAFA]/50 dark:bg-stone-900/10 rounded-xl border border-[#E5DED5]/20 dark:border-[#2E2B27]/20 p-2 text-stone-300">30</div>
-
-                    {/* Day 1 - 31 */}
-                    {Array.from({ length: 31 }).map((_, idx) => {
-                      const dayNum = idx + 1
-                      const isToday = dayNum === 5 // July 5 today
+                    {/* Leading days from the previous month */}
+                    {Array.from({ length: firstWeekday }).map((_, idx) => {
+                      const prevMonthLastDay = new Date(currentYear, currentMonth, 0).getDate()
+                      const dayNum = prevMonthLastDay - firstWeekday + idx + 1
                       return (
-                        <div 
-                          key={dayNum} 
-                          onClick={() => toast.info(`Schedule details for July ${dayNum}, 2026.`)}
+                        <div key={`prev-${idx}`} className="h-28 bg-[#FAFAFA]/50 dark:bg-stone-900/10 rounded-xl border border-[#E5DED5]/20 dark:border-[#2E2B27]/20 p-2 text-stone-300">{dayNum}</div>
+                      )
+                    })}
+
+                    {/* Real days of the month */}
+                    {Array.from({ length: daysInMonth }).map((_, idx) => {
+                      const dayNum = idx + 1
+                      const isToday = isCurrentRealMonth && dayNum === today.getDate()
+                      const dayMeetings = meetingsByDay.get(String(dayNum)) || []
+                      return (
+                        <div
+                          key={dayNum}
+                          onClick={() => openNewMeetingDialog(new Date(currentYear, currentMonth, dayNum))}
                           className={cn(
-                            "h-28 bg-[#FAFAFA] dark:bg-[#141312] border border-[#E5DED5]/40 dark:border-[#2E2B27]/60 rounded-xl p-2 cursor-pointer transition-colors hover:bg-stone-50 dark:hover:bg-stone-900/40 relative flex flex-col justify-between",
+                            "h-28 bg-[#FAFAFA] dark:bg-[#141312] border border-[#E5DED5]/40 dark:border-[#2E2B27]/60 rounded-xl p-2 cursor-pointer transition-colors hover:bg-stone-50 dark:hover:bg-stone-900/40 relative flex flex-col justify-between overflow-hidden",
                             isToday && "ring-2 ring-[#FF6A2E]"
                           )}
                         >
                           <span className={cn("text-sm font-bold", isToday ? "text-[#FF6A2E] dark:text-[#F37338]" : "text-stone-850 dark:text-stone-350")}>{dayNum}</span>
-                          
-                          {/* Meetings on specific days */}
-                          {dayNum === 5 && (
+
+                          {dayMeetings.length > 0 && (
                             <div className="space-y-1 mt-1.5">
-                              <div className="text-[10px] font-bold bg-[#FFF5F5] text-[#FF6A2E] dark:bg-[#3B221B] dark:text-[#F37338] px-1.5 py-0.5 rounded truncate leading-tight">10:00 Design Sync</div>
-                              <div className="text-[10px] font-bold bg-[#F5F3FF] text-[#7C3AED] dark:bg-[#281D3E] dark:text-[#A78BFA] px-1.5 py-0.5 rounded truncate leading-tight">13:00 Product Review</div>
-                            </div>
-                          )}
-                          {dayNum === 6 && (
-                            <div className="mt-1.5">
-                              <div className="text-[10px] font-bold bg-[#EFF6FF] text-[#3B82F6] dark:bg-[#1E293B] dark:text-[#60A5FA] px-1.5 py-0.5 rounded truncate leading-tight">11:00 Marketing Plan</div>
-                            </div>
-                          )}
-                          {dayNum === 8 && (
-                            <div className="mt-1.5">
-                              <div className="text-[10px] font-bold bg-[#FFF7ED] text-[#F97316] dark:bg-[#3B2519] dark:text-[#FDBA74] px-1.5 py-0.5 rounded truncate leading-tight">15:00 Client Kickoff</div>
+                              {dayMeetings.slice(0, 3).map((meeting) => {
+                                const color = meetingColors[hashToIndex(meeting.id, meetingColors.length)]
+                                const time = new Date(meeting.scheduled_at).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false })
+                                return (
+                                  <div
+                                    key={meeting.id}
+                                    onClick={(e) => { e.stopPropagation(); onJoinRoom(meeting.room_id) }}
+                                    className={cn("group/chip flex items-center justify-between gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded truncate leading-tight", color.bg, color.text)}
+                                  >
+                                    <span className="truncate">{time} {meeting.room_name}</span>
+                                    <button
+                                      onClick={(e) => { e.stopPropagation(); cancelMeeting(meeting.id) }}
+                                      className="hidden group-hover/chip:inline-flex shrink-0 hover:opacity-70"
+                                      title="Cancel meeting"
+                                    >
+                                      <X className="w-2.5 h-2.5" />
+                                    </button>
+                                  </div>
+                                )
+                              })}
                             </div>
                           )}
                         </div>
                       )
                     })}
 
-                    {/* Offset days next month */}
-                    <div className="h-28 bg-[#FAFAFA]/50 dark:bg-stone-900/10 rounded-xl border border-[#E5DED5]/20 dark:border-[#2E2B27]/20 p-2 text-stone-300">1</div>
+                    {/* Trailing days from the next month */}
+                    {Array.from({ length: (7 - (firstWeekday + daysInMonth) % 7) % 7 }).map((_, idx) => (
+                      <div key={`next-${idx}`} className="h-28 bg-[#FAFAFA]/50 dark:bg-stone-900/10 rounded-xl border border-[#E5DED5]/20 dark:border-[#2E2B27]/20 p-2 text-stone-300">{idx + 1}</div>
+                    ))}
                   </div>
+
+                  {meetingsLoading && (
+                    <div className="py-8 flex justify-center items-center">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#FF6A2E]" />
+                    </div>
+                  )}
                 </div>
               </div>
             )}
@@ -945,56 +1181,76 @@ export default function HomePage({ user, onJoinRoom, onSignOut }: Props) {
                   </p>
                 </div>
 
+                {/* Playback Dialog */}
+                <Dialog open={!!playbackRecording} onOpenChange={(open) => !open && closePlayback()}>
+                  <DialogContent className="rounded-2xl max-w-2xl bg-white dark:bg-[#1D1B19] border border-[#E5DED5]/50 dark:border-[#2E2B27]">
+                    <DialogHeader>
+                      <DialogTitle className="text-xl font-bold">{playbackRecording?.display_name}</DialogTitle>
+                      <DialogDescription className="text-stone-500 dark:text-stone-400">
+                        {playbackRecording && new Date(playbackRecording.created_at).toLocaleString()}
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="aspect-video rounded-xl bg-black flex items-center justify-center overflow-hidden">
+                      {playbackLoading && (
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#FF6A2E]" />
+                      )}
+                      {!playbackLoading && playbackUrl && (
+                        <video src={playbackUrl} controls autoPlay className="w-full h-full" />
+                      )}
+                    </div>
+                  </DialogContent>
+                </Dialog>
+
                 {/* Recordings list */}
                 <div className="bg-white dark:bg-[#1D1B19] border border-[#E5DED5]/40 dark:border-[#2E2B27] rounded-3xl p-6 shadow-sm space-y-6">
                   <div className="flex items-center justify-between">
-                    <h2 className="text-lg font-bold text-stone-900 dark:text-white">Past Conference Audits ({3})</h2>
-                    <span className="text-xs font-semibold text-stone-400 dark:text-stone-500">Recordings stored securely</span>
+                    <h2 className="text-lg font-bold text-stone-900 dark:text-white">Past Conference Recordings ({recordings.length})</h2>
+                    <span className="text-xs font-semibold text-stone-400 dark:text-stone-500">Recordings stored securely, end-to-end encrypted</span>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {/* Recording 1 */}
-                    <div className="group relative bg-[#FAFAFA] dark:bg-[#141312] border border-[#E5DED5]/30 dark:border-[#2E2B27]/50 rounded-2xl p-5 hover:shadow-md transition-all">
-                      <div className="relative aspect-video rounded-xl bg-gradient-to-br from-[#35252b] to-[#1e1d35] flex items-center justify-center mb-4 overflow-hidden">
-                        <Disc className="w-12 h-12 text-[#FF6A2E] animate-pulse" />
-                        <span className="absolute bottom-2 right-2 text-[10px] font-bold text-white bg-black/60 px-2 py-0.5 rounded">01:14:20</span>
-                      </div>
-                      <h4 className="text-[15px] font-bold text-stone-950 dark:text-white leading-tight">Q2 Roadmap Alignment</h4>
-                      <p className="text-xs text-stone-400 mt-1 leading-snug">Recorded Jun 28, 2026 • 1.2 GB • MP4</p>
-                      <div className="flex items-center gap-2 mt-4 pt-3 border-t border-[#E5DED5]/20 dark:border-[#2E2B27]/20">
-                        <button onClick={() => toast.success("Loading video player wizard...")} className="flex-1 py-2 px-3 text-xs font-bold bg-[#FF6A2E] text-white rounded-xl hover:bg-[#FF6A2E]/90 transition-colors shadow-sm cursor-pointer text-center">Watch Playback</button>
-                        <button onClick={() => toast.success("Starting download...")} className="py-2 px-3 text-xs font-bold border border-stone-200 dark:border-[#2E2B27] hover:bg-stone-50 dark:hover:bg-stone-900 rounded-xl cursor-pointer">Download</button>
-                      </div>
+                  {recordingsLoading && (
+                    <div className="py-12 flex justify-center items-center">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#FF6A2E]" />
                     </div>
+                  )}
 
-                    {/* Recording 2 */}
-                    <div className="group relative bg-[#FAFAFA] dark:bg-[#141312] border border-[#E5DED5]/30 dark:border-[#2E2B27]/50 rounded-2xl p-5 hover:shadow-md transition-all">
-                      <div className="relative aspect-video rounded-xl bg-gradient-to-br from-[#2E1E1E] to-[#171626] flex items-center justify-center mb-4 overflow-hidden">
-                        <Disc className="w-12 h-12 text-[#7C3AED] animate-pulse" />
-                        <span className="absolute bottom-2 right-2 text-[10px] font-bold text-white bg-black/60 px-2 py-0.5 rounded">00:45:12</span>
-                      </div>
-                      <h4 className="text-[15px] font-bold text-stone-950 dark:text-white leading-tight">Weekly Design Team Sync</h4>
-                      <p className="text-xs text-stone-400 mt-1 leading-snug">Recorded Jun 22, 2026 • 450 MB • MP4</p>
-                      <div className="flex items-center gap-2 mt-4 pt-3 border-t border-[#E5DED5]/20 dark:border-[#2E2B27]/20">
-                        <button onClick={() => toast.success("Loading video player wizard...")} className="flex-1 py-2 px-3 text-xs font-bold bg-[#FF6A2E] text-white rounded-xl hover:bg-[#FF6A2E]/90 transition-colors shadow-sm cursor-pointer text-center">Watch Playback</button>
-                        <button onClick={() => toast.success("Starting download...")} className="py-2 px-3 text-xs font-bold border border-stone-200 dark:border-[#2E2B27] hover:bg-stone-50 dark:hover:bg-stone-900 rounded-xl cursor-pointer">Download</button>
-                      </div>
+                  {!recordingsLoading && recordings.length === 0 && (
+                    <div className="py-12 text-center">
+                      <Disc className="w-12 h-12 text-stone-300 dark:text-stone-700 mx-auto mb-4" />
+                      <h4 className="text-[15px] font-semibold text-stone-900 dark:text-white">No recordings yet</h4>
+                      <p className="text-xs text-stone-400 dark:text-stone-500 mt-1">Start recording during a call to see it appear here.</p>
                     </div>
+                  )}
 
-                    {/* Recording 3 */}
-                    <div className="group relative bg-[#FAFAFA] dark:bg-[#141312] border border-[#E5DED5]/30 dark:border-[#2E2B27]/50 rounded-2xl p-5 hover:shadow-md transition-all">
-                      <div className="relative aspect-video rounded-xl bg-gradient-to-br from-[#1b251f] to-[#12232b] flex items-center justify-center mb-4 overflow-hidden">
-                        <Disc className="w-12 h-12 text-[#10B981] animate-pulse" />
-                        <span className="absolute bottom-2 right-2 text-[10px] font-bold text-white bg-black/60 px-2 py-0.5 rounded">01:05:00</span>
-                      </div>
-                      <h4 className="text-[15px] font-bold text-stone-950 dark:text-white leading-tight">Client Kickoff - Marketing</h4>
-                      <p className="text-xs text-stone-400 mt-1 leading-snug">Recorded Jun 15, 2026 • 850 MB • MP4</p>
-                      <div className="flex items-center gap-2 mt-4 pt-3 border-t border-[#E5DED5]/20 dark:border-[#2E2B27]/20">
-                        <button onClick={() => toast.success("Loading video player wizard...")} className="flex-1 py-2 px-3 text-xs font-bold bg-[#FF6A2E] text-white rounded-xl hover:bg-[#FF6A2E]/90 transition-colors shadow-sm cursor-pointer text-center">Watch Playback</button>
-                        <button onClick={() => toast.success("Starting download...")} className="py-2 px-3 text-xs font-bold border border-stone-200 dark:border-[#2E2B27] hover:bg-stone-50 dark:hover:bg-stone-900 rounded-xl cursor-pointer">Download</button>
-                      </div>
+                  {!recordingsLoading && recordings.length > 0 && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {recordings.map((recording) => (
+                        <div key={recording.id} className="group relative bg-[#FAFAFA] dark:bg-[#141312] border border-[#E5DED5]/30 dark:border-[#2E2B27]/50 rounded-2xl p-5 hover:shadow-md transition-all">
+                          <div className="relative aspect-video rounded-xl bg-gradient-to-br from-[#35252b] to-[#1e1d35] flex items-center justify-center mb-4 overflow-hidden">
+                            <Disc className="w-12 h-12 text-[#FF6A2E]" />
+                            <span className="absolute bottom-2 right-2 text-[10px] font-bold text-white bg-black/60 px-2 py-0.5 rounded">{formatDuration(recording.duration_seconds)}</span>
+                          </div>
+                          <h4 className="text-[15px] font-bold text-stone-950 dark:text-white leading-tight">{recording.display_name}</h4>
+                          <p className="text-xs text-stone-400 mt-1 leading-snug">
+                            Recorded {new Date(recording.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })} • {formatFileSize(recording.file_size)}
+                          </p>
+                          <div className="flex items-center gap-2 mt-4 pt-3 border-t border-[#E5DED5]/20 dark:border-[#2E2B27]/20">
+                            <button onClick={() => watchRecording(recording)} className="flex-1 flex items-center justify-center gap-1.5 py-2 px-3 text-xs font-bold bg-[#FF6A2E] text-white rounded-xl hover:bg-[#FF6A2E]/90 transition-colors shadow-sm cursor-pointer text-center">
+                              <Play className="w-3.5 h-3.5" />
+                              Watch Playback
+                            </button>
+                            <button onClick={() => downloadRecording(recording)} className="flex items-center justify-center gap-1.5 py-2 px-3 text-xs font-bold border border-stone-200 dark:border-[#2E2B27] hover:bg-stone-50 dark:hover:bg-stone-900 rounded-xl cursor-pointer">
+                              <Download className="w-3.5 h-3.5" />
+                              Download
+                            </button>
+                            <button onClick={() => deleteRecording(recording)} className="flex items-center justify-center p-2 text-red-500 border border-stone-200 dark:border-[#2E2B27] hover:bg-red-50 dark:hover:bg-red-950/20 rounded-xl cursor-pointer" title="Delete recording">
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
                     </div>
-                  </div>
+                  )}
                 </div>
               </div>
             )}
@@ -1012,94 +1268,62 @@ export default function HomePage({ user, onJoinRoom, onSignOut }: Props) {
                 {/* Contacts grid */}
                 <div className="bg-white dark:bg-[#1D1B19] border border-[#E5DED5]/40 dark:border-[#2E2B27] rounded-3xl p-6 shadow-sm space-y-6">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                    <h2 className="text-lg font-bold text-stone-900 dark:text-white">Active Contacts</h2>
-                    <div className="relative max-w-xs w-full">
+                    <h2 className="text-lg font-bold text-stone-900 dark:text-white">All Contacts ({contacts.length})</h2>
+                    <form
+                      onSubmit={(e) => { e.preventDefault(); fetchContacts(contactSearch) }}
+                      className="relative max-w-xs w-full"
+                    >
                       <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400" />
-                      <input 
-                        type="text" 
-                        placeholder="Search contact..." 
-                        className="w-full pl-9 pr-4 py-2 border border-stone-200 dark:border-stone-800 rounded-xl bg-[#F4F4F4]/30 dark:bg-stone-900 text-xs outline-none focus:border-[#FF6A2E]" 
+                      <input
+                        type="text"
+                        placeholder="Search contact..."
+                        value={contactSearch}
+                        onChange={(e) => {
+                          setContactSearch(e.target.value)
+                          fetchContacts(e.target.value)
+                        }}
+                        className="w-full pl-9 pr-4 py-2 border border-stone-200 dark:border-stone-800 rounded-xl bg-[#F4F4F4]/30 dark:bg-stone-900 text-xs outline-none focus:border-[#FF6A2E]"
                       />
-                    </div>
+                    </form>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {/* Contact 1 */}
-                    <div className="flex items-center justify-between p-4 bg-[#FAFAFA] dark:bg-[#141312] border border-[#E5DED5]/20 dark:border-[#2E2B27]/40 rounded-2xl">
-                      <div className="flex items-center gap-3">
-                        <div className="relative">
-                          <Avatar className="w-[42px] h-[42px] border border-stone-200 dark:border-stone-850">
-                            <AvatarImage src={avatars.user1} />
-                          </Avatar>
-                          <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-500 rounded-full ring-2 ring-white dark:ring-stone-950" />
-                        </div>
-                        <div>
-                          <h4 className="text-[14px] font-bold text-stone-900 dark:text-white leading-tight">Sarah Jenkins</h4>
-                          <span className="text-[11px] text-[#FF6A2E] font-semibold">Product Design</span>
-                        </div>
-                      </div>
-                      <button onClick={startInstantMeeting} className="p-2.5 bg-[#FF6A2E] hover:bg-[#FF6A2E]/90 text-white rounded-xl shadow-sm transition-colors cursor-pointer" title="Call">
-                        <Video className="w-4 h-4" />
-                      </button>
+                  {contactsLoading && (
+                    <div className="py-12 flex justify-center items-center">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#FF6A2E]" />
                     </div>
+                  )}
 
-                    {/* Contact 2 */}
-                    <div className="flex items-center justify-between p-4 bg-[#FAFAFA] dark:bg-[#141312] border border-[#E5DED5]/20 dark:border-[#2E2B27]/40 rounded-2xl">
-                      <div className="flex items-center gap-3">
-                        <div className="relative">
-                          <Avatar className="w-[42px] h-[42px] border border-stone-200 dark:border-stone-850">
-                            <AvatarImage src={avatars.user4} />
-                          </Avatar>
-                          <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-stone-300 rounded-full ring-2 ring-white dark:ring-stone-950" />
-                        </div>
-                        <div>
-                          <h4 className="text-[14px] font-bold text-stone-900 dark:text-white leading-tight">Alex Rivera</h4>
-                          <span className="text-[11px] text-stone-400 font-medium">Frontend Developer</span>
-                        </div>
-                      </div>
-                      <button onClick={() => toast.info("Alex is currently offline. An invitation email was sent.")} className="p-2.5 bg-stone-100 dark:bg-[#262421] text-stone-400 rounded-xl hover:text-stone-900 dark:hover:text-white transition-colors cursor-pointer" title="Invite">
-                        <Users className="w-4 h-4" />
-                      </button>
+                  {!contactsLoading && contacts.length === 0 && (
+                    <div className="py-12 text-center">
+                      <Users className="w-12 h-12 text-stone-300 dark:text-stone-700 mx-auto mb-4" />
+                      <h4 className="text-[15px] font-semibold text-stone-900 dark:text-white">No contacts found</h4>
+                      <p className="text-xs text-stone-400 dark:text-stone-500 mt-1">Other registered users will show up here.</p>
                     </div>
+                  )}
 
-                    {/* Contact 3 */}
-                    <div className="flex items-center justify-between p-4 bg-[#FAFAFA] dark:bg-[#141312] border border-[#E5DED5]/20 dark:border-[#2E2B27]/40 rounded-2xl">
-                      <div className="flex items-center gap-3">
-                        <div className="relative">
-                          <Avatar className="w-[42px] h-[42px] border border-stone-200 dark:border-stone-850">
-                            <AvatarImage src={avatars.user7} />
-                          </Avatar>
-                          <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-500 rounded-full ring-2 ring-white dark:ring-stone-950" />
-                        </div>
-                        <div>
-                          <h4 className="text-[14px] font-bold text-stone-900 dark:text-white leading-tight">Emma Watson</h4>
-                          <span className="text-[11px] text-purple-500 font-semibold">Security & Cryptography</span>
-                        </div>
-                      </div>
-                      <button onClick={startInstantMeeting} className="p-2.5 bg-[#FF6A2E] hover:bg-[#FF6A2E]/90 text-white rounded-xl shadow-sm transition-colors cursor-pointer" title="Call">
-                        <Video className="w-4 h-4" />
-                      </button>
+                  {!contactsLoading && contacts.length > 0 && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {contacts.map((contact) => {
+                        const contactName = contact.first_name || contact.username
+                        return (
+                          <div key={contact.id} className="flex items-center justify-between p-4 bg-[#FAFAFA] dark:bg-[#141312] border border-[#E5DED5]/20 dark:border-[#2E2B27]/40 rounded-2xl">
+                            <div className="flex items-center gap-3 min-w-0">
+                              <Avatar className="w-[42px] h-[42px] border border-stone-200 dark:border-stone-850 shrink-0">
+                                <AvatarFallback className="bg-[#FF6A2E] text-white font-semibold">{getInitials(contactName)}</AvatarFallback>
+                              </Avatar>
+                              <div className="min-w-0">
+                                <h4 className="text-[14px] font-bold text-stone-900 dark:text-white leading-tight truncate">{contactName}</h4>
+                                <span className="text-[11px] text-stone-400 font-medium truncate block">{contact.email || contact.username}</span>
+                              </div>
+                            </div>
+                            <button onClick={() => callContact(contact)} className="p-2.5 bg-[#FF6A2E] hover:bg-[#FF6A2E]/90 text-white rounded-xl shadow-sm transition-colors cursor-pointer shrink-0" title="Call">
+                              <Video className="w-4 h-4" />
+                            </button>
+                          </div>
+                        )
+                      })}
                     </div>
-
-                    {/* Contact 4 */}
-                    <div className="flex items-center justify-between p-4 bg-[#FAFAFA] dark:bg-[#141312] border border-[#E5DED5]/20 dark:border-[#2E2B27]/40 rounded-2xl">
-                      <div className="flex items-center gap-3">
-                        <div className="relative">
-                          <Avatar className="w-[42px] h-[42px] border border-stone-200 dark:border-stone-850">
-                            <AvatarImage src={avatars.user10} />
-                          </Avatar>
-                          <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-500 rounded-full ring-2 ring-white dark:ring-stone-950" />
-                        </div>
-                        <div>
-                          <h4 className="text-[14px] font-bold text-stone-900 dark:text-white leading-tight">Michael Chen</h4>
-                          <span className="text-[11px] text-emerald-500 font-semibold">Technical Sales Lead</span>
-                        </div>
-                      </div>
-                      <button onClick={startInstantMeeting} className="p-2.5 bg-[#FF6A2E] hover:bg-[#FF6A2E]/90 text-white rounded-xl shadow-sm transition-colors cursor-pointer" title="Call">
-                        <Video className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </div>
+                  )}
                 </div>
               </div>
             )}

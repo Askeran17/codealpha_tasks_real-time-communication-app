@@ -16,12 +16,21 @@ export type RemotePeer = {
   audioEnabled: boolean
   videoEnabled: boolean
   screenSharing: boolean
+  handRaised: boolean
 }
 
 export type LocalState = {
   audioEnabled: boolean
   videoEnabled: boolean
   screenSharing: boolean
+  handRaised: boolean
+}
+
+export type Reaction = {
+  id: string
+  userId: string
+  displayName: string
+  emoji: string
 }
 
 export function useWebRTC(roomId: string, user: AuthUser) {
@@ -32,7 +41,9 @@ export function useWebRTC(roomId: string, user: AuthUser) {
     audioEnabled: true,
     videoEnabled: true,
     screenSharing: false,
+    handRaised: false,
   })
+  const [reactions, setReactions] = useState<Reaction[]>([])
 
   const localStreamRef = useRef<MediaStream | null>(null)
   const screenStreamRef = useRef<MediaStream | null>(null)
@@ -121,6 +132,7 @@ export function useWebRTC(roomId: string, user: AuthUser) {
           audioEnabled: true,
           videoEnabled: true,
           screenSharing: false,
+          handRaised: false,
         })
       }
       return updated
@@ -182,6 +194,7 @@ export function useWebRTC(roomId: string, user: AuthUser) {
                   audioEnabled: true,
                   videoEnabled: true,
                   screenSharing: false,
+                  handRaised: false,
                 })
               }
               return updated
@@ -233,6 +246,17 @@ export function useWebRTC(roomId: string, user: AuthUser) {
               }
               return updated
             })
+          }
+
+          else if (msg.type === "reaction") {
+            const emoji = msg.payload?.emoji
+            if (!emoji) return
+            const reactionDisplayName = msg.payload.display_name || msg.display_name || "User"
+            const id = `${msg.from_user}-${Date.now()}-${Math.random()}`
+            setReactions((prev) => [...prev, { id, userId: msg.from_user, displayName: reactionDisplayName, emoji }])
+            setTimeout(() => {
+              setReactions((prev) => prev.filter((r) => r.id !== id))
+            }, 3000)
           }
         },
         () => {
@@ -339,14 +363,65 @@ export function useWebRTC(roomId: string, user: AuthUser) {
     }
   }, [localState, stopScreenShare])
 
+  const toggleHandRaise = useCallback(() => {
+    const newState = { ...localState, handRaised: !localState.handRaised }
+    setLocalState(newState)
+    sendWSMessageRef.current?.("media-state", newState)
+  }, [localState])
+
+  const sendReaction = useCallback((emoji: string) => {
+    const id = `${user.id}-${Date.now()}-${Math.random()}`
+    setReactions((prev) => [...prev, { id, userId: user.id, displayName, emoji }])
+    setTimeout(() => {
+      setReactions((prev) => prev.filter((r) => r.id !== id))
+    }, 3000)
+    sendWSMessageRef.current?.("reaction", { emoji, display_name: displayName })
+  }, [user.id, displayName])
+
+  const switchAudioInput = useCallback(async (deviceId: string) => {
+    const stream = localStreamRef.current
+    if (!stream) return
+    try {
+      const newStream = await navigator.mediaDevices.getUserMedia({ audio: { deviceId: { exact: deviceId } } })
+      const newTrack = newStream.getAudioTracks()[0]
+      if (!newTrack) return
+
+      const oldTrack = stream.getAudioTracks()[0]
+      if (oldTrack) {
+        stream.removeTrack(oldTrack)
+        oldTrack.stop()
+      }
+      stream.addTrack(newTrack)
+      newTrack.enabled = localState.audioEnabled
+
+      peerConnectionsRef.current.forEach((pc) => {
+        const sender = pc.getSenders().find((s) => s.track?.kind === "audio")
+        if (sender) sender.replaceTrack(newTrack)
+      })
+
+      // Mutating the MediaStream in place doesn't change its reference, so
+      // consumers relying on localStream in effect deps (e.g. the audio-level
+      // meter) wouldn't re-run — publish a new MediaStream wrapping the same
+      // tracks purely to signal the change.
+      setLocalStream(new MediaStream(stream.getTracks()))
+      toast.success("Microphone switched")
+    } catch {
+      toast.error("Could not switch microphone")
+    }
+  }, [localState.audioEnabled])
+
   return {
     localStream,
     screenStream,
     peers,
     localState,
     displayName,
+    reactions,
     toggleAudio,
     toggleVideo,
+    toggleHandRaise,
+    sendReaction,
+    switchAudioInput,
     startScreenShare,
     stopScreenShare,
   }
