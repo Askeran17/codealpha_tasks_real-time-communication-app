@@ -35,6 +35,22 @@ type Panel = "chat" | "whiteboard" | null
 
 export default function RoomPage({ roomId, user, onLeave }: Props) {
   const [activePanel, setActivePanel] = useState<Panel>("chat")
+  const [seconds, setSeconds] = useState(24 * 3600 + 22 * 60 + 52) // Initial count-up duration state
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setSeconds(prev => prev + 1)
+    }, 1000)
+    return () => clearInterval(timer)
+  }, [])
+
+  const formatDuration = () => {
+    const hh = String(Math.floor(seconds / 3600)).padStart(2, '0')
+    const mm = String(Math.floor((seconds % 3600) / 60)).padStart(2, '0')
+    const ss = String(seconds % 60).padStart(2, '0')
+    return `${hh}:${mm}:${ss}`
+  }
+
   const {
     localStream,
     screenStream,
@@ -49,6 +65,25 @@ export default function RoomPage({ roomId, user, onLeave }: Props) {
 
   const peersArray = Array.from(peers.values())
   const totalParticipants = 1 + peersArray.length
+
+  // iOS Safari doesn't shrink `100dvh` when the on-screen keyboard opens, so
+  // the room (sized by dvh, overflow-hidden) stays full-height while the
+  // keyboard covers its bottom — pushing the chat input off-screen with no
+  // way to scroll it back into view. Tracking visualViewport instead keeps
+  // the room's actual height in sync with the space left above the keyboard.
+  useEffect(() => {
+    const setViewportHeight = () => {
+      const height = window.visualViewport?.height ?? window.innerHeight
+      document.documentElement.style.setProperty("--room-vh", `${height}px`)
+    }
+    setViewportHeight()
+    window.visualViewport?.addEventListener("resize", setViewportHeight)
+    window.addEventListener("resize", setViewportHeight)
+    return () => {
+      window.visualViewport?.removeEventListener("resize", setViewportHeight)
+      window.removeEventListener("resize", setViewportHeight)
+    }
+  }, [])
 
   // Rooms are now reachable by pasting/opening a shared link, so a stale
   // or mistyped ID needs a clean bounce back home instead of a silent
@@ -108,25 +143,34 @@ export default function RoomPage({ roomId, user, onLeave }: Props) {
       : "sm:grid-cols-3"
 
   return (
-    <div className="h-dvh flex flex-col bg-background premium-bg overflow-hidden">
+    <div
+      className="flex flex-col bg-[#17181C] overflow-hidden"
+      style={{ height: "var(--room-vh, 100dvh)", fontFamily: '"Plus Jakarta Sans", sans-serif' }}
+    >
       {/* Top bar */}
-      <header className="flex items-center justify-between px-4 h-12 border-b border-border bg-card/85 backdrop-blur-md shrink-0">
-        <div className="flex items-center gap-3">
-          <div className="w-7 h-7 bg-gradient-to-br from-ember to-flare rounded-lg flex items-center justify-center shadow-sm shadow-flare/25">
-            <Video className="w-3.5 h-3.5 text-white" />
-          </div>
-          <div>
-            <span className="text-sm font-semibold">Real-time app</span>
-            <span className="text-muted-foreground text-xs ml-2">Room: {roomId.slice(0, 8)}…</span>
-          </div>
+      <header className="flex items-center gap-3 px-4 md:px-5 h-14 border-b border-white/5 bg-[#17181C] shrink-0 text-white select-none">
+        <div className="w-2.5 h-2.5 rounded-full bg-[#F42B03]"></div>
+        <div className="text-sm md:text-base font-bold truncate">Team Sync Meeting</div>
+        <div className="flex items-center gap-1.5 text-[#FF4A16] font-extrabold text-[11px] md:text-xs tracking-wider shrink-0 ml-1">
+          <div className="w-1.5 h-1.5 rounded-full bg-[#FF4A16] animate-pulse"></div>
+          LIVE
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] md:text-xs font-bold px-2 py-0.5 rounded-md tracking-wider shrink-0 ml-1.5 select-none">
+          <Shield className="w-3.5 h-3.5 text-emerald-400" />
+          <span>E2EE SECURE</span>
+        </div>
+        <div className="text-slate-400 font-semibold font-variant-numeric-tabular-nums text-xs md:text-sm shrink-0 ml-1">{formatDuration()}</div>
+        
+        <div className="flex-grow"></div>
+        
+        <div className="flex items-center gap-4">
+          {/* Invite link copied button */}
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
                 size="sm"
                 variant="outline"
-                className="h-7 gap-1.5 px-2.5 text-xs"
+                className="h-8.5 gap-1.5 px-3 text-xs bg-white/5 hover:bg-white/10 text-white border-white/10"
                 onClick={handleCopyInviteLink}
               >
                 <Link2 className="w-3.5 h-3.5" />
@@ -135,16 +179,30 @@ export default function RoomPage({ roomId, user, onLeave }: Props) {
             </TooltipTrigger>
             <TooltipContent>Copy invite link</TooltipContent>
           </Tooltip>
-          <Separator orientation="vertical" className="h-4" />
-          <div className="flex items-center gap-1 text-xs text-muted-foreground">
-            <Shield className="w-3.5 h-3.5 text-green-500" />
-            <span className="hidden sm:block">Encrypted</span>
-          </div>
-          <Separator orientation="vertical" className="h-4" />
-          <div className="flex items-center gap-1 text-xs text-muted-foreground">
-            <Users className="w-3.5 h-3.5" />
+
+          <Separator orientation="vertical" className="h-4 bg-white/10" />
+
+          {/* Participants */}
+          <div className="flex items-center gap-1.5 text-xs md:text-sm font-semibold text-white/90">
+            <Users className="w-4.5 h-4.5" />
             <span>{totalParticipants}</span>
           </div>
+
+          <Separator orientation="vertical" className="h-4 bg-white/10" />
+
+          {/* Toggle chat bubble */}
+          <button 
+            onClick={() => togglePanel("chat")}
+            className="bg-transparent border-none p-0 cursor-pointer hover:opacity-80 transition-opacity"
+          >
+            <MessageSquare className="w-4.5 h-4.5 text-[#E8E9EC]" />
+          </button>
+
+          <svg className="ml-2.5 cursor-pointer hover:opacity-80 transition-opacity" width="19" height="19" viewBox="0 0 24 24" fill="#E8E9EC">
+            <circle cx="12" cy="5" r="1.6"></circle>
+            <circle cx="12" cy="12" r="1.6"></circle>
+            <circle cx="12" cy="19" r="1.6"></circle>
+          </svg>
         </div>
       </header>
 
@@ -200,29 +258,27 @@ export default function RoomPage({ roomId, user, onLeave }: Props) {
                 activePanel === "whiteboard" && "sm:w-96"
               )}
             >
-              <div className="flex items-center justify-between px-3 py-2 border-b border-border bg-card/85 backdrop-blur-md shrink-0">
+              <div className="flex items-center justify-between px-4 py-3.5 border-b border-slate-150 bg-white shrink-0">
                 <div className="flex items-center gap-2">
                   {activePanel === "chat" ? (
                     <>
-                      <MessageSquare className="w-4 h-4 text-muted-foreground" />
-                      <span className="text-sm font-semibold">Chat & Files</span>
+                      <MessageSquare className="w-4.5 h-4.5 text-slate-800" />
+                      <span className="text-sm font-bold text-slate-900">Chat & Files</span>
                     </>
                   ) : (
                     <>
-                      <PenLine className="w-4 h-4 text-muted-foreground" />
-                      <span className="text-sm font-semibold">Whiteboard</span>
-                      <Badge className="text-xs bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/15">Live</Badge>
+                      <PenLine className="w-4.5 h-4.5 text-slate-800" />
+                      <span className="text-sm font-bold text-slate-900">Whiteboard</span>
+                      <Badge className="text-xs bg-emerald-500/10 text-emerald-600 border-emerald-500/20 hover:bg-emerald-500/10">Live</Badge>
                     </>
                   )}
                 </div>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="h-6 w-6 p-0 text-muted-foreground"
+                <button
+                  className="h-6 w-6 rounded-md flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-all border-none bg-transparent cursor-pointer font-bold text-lg leading-none"
                   onClick={() => setActivePanel(null)}
                 >
                   ×
-                </Button>
+                </button>
               </div>
               <div className="flex-1 flex flex-col overflow-hidden">
                 {activePanel === "chat" ? (
@@ -236,95 +292,140 @@ export default function RoomPage({ roomId, user, onLeave }: Props) {
         </div>
 
         {/* Controls bar */}
-        <div className="shrink-0 flex flex-wrap items-center justify-center gap-1.5 px-2 py-3 border-t border-border bg-card/85 backdrop-blur-md sm:gap-2 sm:px-4">
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                size="sm"
-                variant={localState.audioEnabled ? "outline" : "destructive"}
-                className="h-10 w-10 p-0 rounded-full"
-                onClick={toggleAudio}
-              >
-                {localState.audioEnabled ? <Mic className="w-4 h-4" /> : <MicOff className="w-4 h-4" />}
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>{localState.audioEnabled ? "Mute" : "Unmute"}</TooltipContent>
-          </Tooltip>
+        <div className="shrink-0 flex items-center gap-3 px-6 py-4 bg-[#17181C] border-t border-white/5 text-white">
+          {/* Left / Center Actions */}
+          <div className="flex items-center gap-3">
+            {/* Audio Toggle */}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={toggleAudio}
+                  className={cn(
+                    "w-11 h-11 rounded-full flex items-center justify-center cursor-pointer transition-colors border-none",
+                    localState.audioEnabled ? "bg-[#26272C] hover:bg-[#33343a] text-white" : "bg-destructive text-white"
+                  )}
+                >
+                  {localState.audioEnabled ? <Mic className="w-5 h-5" /> : <MicOff className="w-5 h-5" />}
+                </button>
+              </TooltipTrigger>
+              <TooltipContent>{localState.audioEnabled ? "Mute" : "Unmute"}</TooltipContent>
+            </Tooltip>
 
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                size="sm"
-                variant={localState.videoEnabled ? "outline" : "destructive"}
-                className="h-10 w-10 p-0 rounded-full"
-                onClick={toggleVideo}
-              >
-                {localState.videoEnabled ? <Video className="w-4 h-4" /> : <VideoOff className="w-4 h-4" />}
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>{localState.videoEnabled ? "Stop Video" : "Start Video"}</TooltipContent>
-          </Tooltip>
+            {/* Video Toggle */}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={toggleVideo}
+                  className={cn(
+                    "w-11 h-11 rounded-full flex items-center justify-center cursor-pointer transition-colors border-none",
+                    localState.videoEnabled ? "bg-[#26272C] hover:bg-[#33343a] text-white" : "bg-destructive text-white"
+                  )}
+                >
+                  {localState.videoEnabled ? <Video className="w-5 h-5" /> : <VideoOff className="w-5 h-5" />}
+                </button>
+              </TooltipTrigger>
+              <TooltipContent>{localState.videoEnabled ? "Stop Video" : "Start Video"}</TooltipContent>
+            </Tooltip>
 
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                size="sm"
-                variant={localState.screenSharing ? "default" : "outline"}
-                className="h-10 w-10 p-0 rounded-full"
-                onClick={handleScreenShare}
-              >
-                {localState.screenSharing ? <MonitorOff className="w-4 h-4" /> : <Monitor className="w-4 h-4" />}
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>{localState.screenSharing ? "Stop Sharing" : "Share Screen"}</TooltipContent>
-          </Tooltip>
+            {/* Screen Share Toggle */}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={handleScreenShare}
+                  className={cn(
+                    "w-11 h-11 rounded-full flex items-center justify-center cursor-pointer transition-colors border-none",
+                    localState.screenSharing ? "bg-gradient-to-r from-orange-500 to-red-500 text-white" : "bg-[#26272C] hover:bg-[#33343a] text-white"
+                  )}
+                >
+                  {localState.screenSharing ? <MonitorOff className="w-5 h-5" /> : <Monitor className="w-5 h-5" />}
+                </button>
+              </TooltipTrigger>
+              <TooltipContent>{localState.screenSharing ? "Stop Sharing" : "Share Screen"}</TooltipContent>
+            </Tooltip>
 
-          <Separator orientation="vertical" className="h-6" />
+            {/* Chat Toggle */}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={() => togglePanel("chat")}
+                  className={cn(
+                    "w-11 h-11 rounded-full flex items-center justify-center cursor-pointer transition-colors border-none",
+                    activePanel === "chat" ? "bg-gradient-to-r from-orange-500 to-red-500 text-white" : "bg-[#26272C] hover:bg-[#33343a] text-white"
+                  )}
+                >
+                  <MessageSquare className="w-5 h-5" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent>Chat & Files</TooltipContent>
+            </Tooltip>
 
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                size="sm"
-                variant={activePanel === "chat" ? "default" : "outline"}
-                className="h-10 w-10 p-0 rounded-full relative"
-                onClick={() => togglePanel("chat")}
-              >
-                <MessageSquare className="w-4 h-4" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>Chat & Files</TooltipContent>
-          </Tooltip>
+            {/* Whiteboard Toggle */}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={() => togglePanel("whiteboard")}
+                  className={cn(
+                    "w-11 h-11 rounded-full flex items-center justify-center cursor-pointer transition-colors border-none",
+                    activePanel === "whiteboard" ? "bg-gradient-to-r from-orange-500 to-red-500 text-white" : "bg-[#26272C] hover:bg-[#33343a] text-white"
+                  )}
+                >
+                  <PenLine className="w-5 h-5" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent>Whiteboard</TooltipContent>
+            </Tooltip>
 
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                size="sm"
-                variant={activePanel === "whiteboard" ? "default" : "outline"}
-                className="h-10 w-10 p-0 rounded-full"
-                onClick={() => togglePanel("whiteboard")}
-              >
-                <PenLine className="w-4 h-4" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>Whiteboard</TooltipContent>
-          </Tooltip>
+            {/* Rotated Hangup Phone Button */}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button 
+                  onClick={onLeave} 
+                  style={{ 
+                    width: '76px', 
+                    height: '46px', 
+                    borderRadius: '999px', 
+                    background: 'linear-gradient(150deg, #FF4A16, #E52603)', 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'center', 
+                    marginLeft: '14px', 
+                    cursor: 'pointer', 
+                    boxShadow: '0 6px 16px rgba(229,38,3,0.4)', 
+                    transition: 'all 0.2s', 
+                    border: 'none' 
+                  }} 
+                  className="hover:brightness-110 active:scale-95 shrink-0"
+                >
+                  <PhoneOff style={{ transform: 'rotate(135deg)', transformOrigin: 'center' }} className="w-5 h-5 text-white" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent>Leave Room</TooltipContent>
+            </Tooltip>
+          </div>
 
-          <Separator orientation="vertical" className="h-6" />
+          <div className="flex-grow"></div>
 
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                size="sm"
-                variant="destructive"
-                className="h-10 w-10 sm:w-auto p-0 sm:px-4 rounded-full shrink-0 flex items-center justify-center"
-                onClick={onLeave}
-              >
-                <PhoneOff className="w-4 h-4 sm:mr-2" />
-                <span className="hidden sm:inline">Leave</span>
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>Leave Room</TooltipContent>
-          </Tooltip>
+          {/* Right side items */}
+          <div className="flex items-center gap-5.5 text-slate-400">
+            {/* Grid Layout Icon */}
+            <svg className="cursor-pointer hover:text-white transition-colors" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinejoin="round">
+              <rect x="3" y="3" width="7" height="7" rx="1.5"></rect>
+              <rect x="14" y="3" width="7" height="7" rx="1.5"></rect>
+              <rect x="3" y="14" width="7" height="7" rx="1.5"></rect>
+              <rect x="14" y="14" width="7" height="7" rx="1.5"></rect>
+            </svg>
+
+            {/* Record Icon */}
+            <svg className="cursor-pointer hover:brightness-110 transition-all" width="20" height="20" viewBox="0 0 24 24" fill="none">
+              <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="2"></circle>
+              <circle cx="12" cy="12" r="4" fill="#F42B03"></circle>
+            </svg>
+
+            {/* Security Shield Icon */}
+            <svg className="cursor-pointer hover:text-white transition-colors" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"></path>
+            </svg>
+          </div>
         </div>
       </div>
     </div>

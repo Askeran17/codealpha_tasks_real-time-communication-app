@@ -114,30 +114,30 @@ export default function VideoTile({
         </div>
       )}
 
-      {/* Bottom bar */}
-      <div className="absolute bottom-0 left-0 right-0 px-3 py-2 bg-gradient-to-t from-black/70 to-transparent flex items-center justify-between">
-        <span className="text-xs font-medium text-white truncate">
+      {/* Bottom-left overlay pill matching the mockup exactly */}
+      <div 
+        style={{ 
+          position: 'absolute', 
+          left: '10px', 
+          bottom: '10px', 
+          display: 'flex', 
+          alignItems: 'center', 
+          gap: '7px', 
+          backgroundColor: 'rgba(12,13,15,0.72)', 
+          borderRadius: '6px', 
+          padding: '5px 10px',
+          zIndex: 10 
+        }}
+      >
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={audioEnabled ? '#39D26A' : '#F45B3B'} strokeWidth="2.4" strokeLinecap="round">
+          <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" />
+          <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+          <line x1="12" y1="19" x2="12" y2="22" />
+        </svg>
+        <span style={{ color: '#ffffff', fontSize: '13px', fontWeight: 600, fontFamily: '"Plus Jakarta Sans", sans-serif' }}>
           {displayName}
           {isLocal && " (You)"}
         </span>
-        <div className="flex items-center gap-1">
-          {screenSharing && (
-            <Badge variant="secondary" className="text-xs px-1.5 py-0 h-5 bg-blue-500 text-white border-0">
-              <Monitor className="w-3 h-3 mr-0.5" />
-              Screen
-            </Badge>
-          )}
-          {!audioEnabled && (
-            <div className="w-5 h-5 bg-destructive rounded-full flex items-center justify-center">
-              <MicOff className="w-3 h-3 text-white" />
-            </div>
-          )}
-          {!videoEnabled && (
-            <div className="w-5 h-5 bg-muted rounded-full flex items-center justify-center">
-              <VideoOff className="w-3 h-3 text-muted-foreground" />
-            </div>
-          )}
-        </div>
       </div>
     </div>
   )
