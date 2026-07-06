@@ -15,4 +15,12 @@ export default defineConfig(({ command }) => ({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  build: {
+    // The remaining main chunk (React, Radix primitives, WebRTC/whiteboard
+    // deps not covered by the RoomPage lazy-load below) sits just over
+    // Rollup's default 500kB heuristic. It's a reasonable size for what it
+    // contains (~145kB gzipped) — raise the warning threshold instead of
+    // chasing a few more kB of manual chunking for no real user benefit.
+    chunkSizeWarningLimit: 600,
+  },
 }))
