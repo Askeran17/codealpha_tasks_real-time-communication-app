@@ -21,7 +21,7 @@ MeetFlow app is a secure, real-time video calling and collaboration platform bui
 * **In-Call Reactions & Raise Hand:** Emoji reactions and hand-raise state are broadcast to every participant in real time over the room's WebSocket channel.
 * **Live Synchronized Whiteboard:** A multiplayer canvas enabling collaborative drawing and writing synchronized in real-time via WebSockets.
 * **Secure Authentication:** User sign-up and log-in powered by Django REST Framework Token Authentication.
-* **System-Wide Light/Dark Mode:** Dynamic theme switcher across the dashboard, calendar, meeting rooms, and chat interfaces for a customized visual experience.
+* **System-Wide Light/Dark Mode:** Dynamic theme switcher across the dashboard for a customized visual experience.
 * **Informational & Landing Pages:** Rich set of interactive subpages including **Product**, **Features**, **Pricing**, **Resources / Documentation**, **Security Logs**, **Systems Status**, and Company pages (**About Us**, **Careers**, **Contact**), as well as **Privacy Policy** and **Terms of Service**.
 
 ---
