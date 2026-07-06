@@ -275,12 +275,6 @@ export const api = {
     return response.blob()
   },
 
-  // Contacts directory
-  async listUsers(search?: string): Promise<DjangoUser[]> {
-    const query = search?.trim() ? `?search=${encodeURIComponent(search.trim())}` : ""
-    return apiRequest<DjangoUser[]>(`users/${query}`)
-  },
-
   // Scheduled meetings (Calendar)
   async listMeetings(): Promise<ScheduledMeeting[]> {
     return apiRequest<ScheduledMeeting[]>("meetings/")

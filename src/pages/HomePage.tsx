@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react"
-import { api, type Room, type AuthUser, type DjangoUser, type ScheduledMeeting, type Recording } from "@/lib/api"
+import { api, type Room, type AuthUser, type ScheduledMeeting, type Recording } from "@/lib/api"
 import { deriveKey, decryptFile } from "@/lib/crypto"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -17,7 +17,7 @@ import { toast } from "sonner"
 import {
   LayoutDashboard, Video, Calendar, Disc, Users, Settings, Crown, Search,
   ChevronDown, ChevronRight, Plus, Link2, ArrowRight, Clock, Trash2,
-  Monitor, LogOut, Sun, Moon, Menu, X, Download, Play, Pin
+  LogOut, Sun, Moon, Menu, X, Download, Play, Pin
 } from "lucide-react"
 import { useTheme } from "@/components/theme-provider"
 import SettingsDialog from "@/components/SettingsDialog"
@@ -135,28 +135,6 @@ export default function HomePage({ user, onJoinRoom, onSignOut }: Props) {
     }
   }
 
-  // Quick Action Utilities
-  const startInstantMeeting = async () => {
-    const randomNum = Math.floor(Math.random() * 900) + 100
-    const name = `Instant Meeting #${randomNum}`
-    const loadingToast = toast.loading("Creating instant meeting...")
-    try {
-      const data = await api.createRoom(name, "Quick action screen share / audio call")
-      toast.dismiss(loadingToast)
-      toast.success("Meeting started!")
-      onJoinRoom(data.id)
-    } catch {
-      toast.dismiss(loadingToast)
-      toast.error("Failed to create instant meeting")
-    }
-  }
-
-  const copyInviteLink = () => {
-    const dummyUrl = `${window.location.origin}/room/invite-link-demo`
-    navigator.clipboard.writeText(dummyUrl)
-    toast.success("Demo invite link copied to clipboard!")
-  }
-
   const getInitials = (name: string) =>
     name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2)
 
@@ -188,44 +166,7 @@ export default function HomePage({ user, onJoinRoom, onSignOut }: Props) {
     },
   ]
 
-  const [currentTab, setCurrentTab] = useState<"dashboard" | "rooms" | "calendar" | "recordings" | "contacts">("dashboard")
-
-  // Contacts state
-  const [contacts, setContacts] = useState<DjangoUser[]>([])
-  const [contactsLoading, setContactsLoading] = useState(false)
-  const [contactSearch, setContactSearch] = useState("")
-
-  const fetchContacts = useCallback(async (search?: string) => {
-    setContactsLoading(true)
-    try {
-      const data = await api.listUsers(search)
-      setContacts(data)
-    } catch {
-      toast.error("Failed to load contacts")
-    } finally {
-      setContactsLoading(false)
-    }
-  }, [])
-
-  useEffect(() => {
-    if (currentTab === "contacts") fetchContacts(contactSearch)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentTab])
-
-  const callContact = async (contact: DjangoUser) => {
-    const loadingToast = toast.loading(`Starting a call with ${contact.first_name || contact.username}...`)
-    try {
-      const room = await api.createRoom(`Call with ${contact.first_name || contact.username}`, "")
-      toast.dismiss(loadingToast)
-      const inviteUrl = `${window.location.origin}/room/${room.id}`
-      navigator.clipboard.writeText(inviteUrl).catch(() => {})
-      toast.success("Room created — invite link copied to clipboard!")
-      onJoinRoom(room.id)
-    } catch {
-      toast.dismiss(loadingToast)
-      toast.error("Failed to start call")
-    }
-  }
+  const [currentTab, setCurrentTab] = useState<"dashboard" | "rooms" | "calendar" | "recordings">("dashboard")
 
   // Calendar / scheduled meetings state
   const today = new Date()
@@ -442,7 +383,6 @@ export default function HomePage({ user, onJoinRoom, onSignOut }: Props) {
     { name: "Meeting Rooms", icon: Video, active: currentTab === "rooms", onClick: () => setCurrentTab("rooms") },
     { name: "Calendar", icon: Calendar, active: currentTab === "calendar", onClick: () => setCurrentTab("calendar") },
     { name: "Recordings", icon: Disc, active: currentTab === "recordings", onClick: () => setCurrentTab("recordings") },
-    { name: "Contacts", icon: Users, active: currentTab === "contacts", onClick: () => setCurrentTab("contacts") },
     { name: "Settings", icon: Settings, active: false, onClick: () => setSettingsOpen(true) },
   ]
 
@@ -450,7 +390,10 @@ export default function HomePage({ user, onJoinRoom, onSignOut }: Props) {
     <div className="flex flex-col h-full justify-between">
       {/* Brand logo */}
       <div>
-        <div className="flex items-center gap-3 px-2 mb-8">
+        <button
+          onClick={() => setCurrentTab("dashboard")}
+          className="flex items-center gap-3 px-2 mb-8 cursor-pointer"
+        >
           <div className="w-10 h-10 bg-gradient-to-br from-[#FF6A2E] to-[#FF2E63] rounded-xl flex items-center justify-center shadow-md shadow-red-500/10">
             <Video className="w-5 h-5 text-white" />
           </div>
@@ -458,7 +401,7 @@ export default function HomePage({ user, onJoinRoom, onSignOut }: Props) {
             <span className="text-stone-900 dark:text-white font-extrabold">Meet</span>
             <span className="text-[#FF6A2E] font-black">Flow</span>
           </span>
-        </div>
+        </button>
 
         {/* Navigation list */}
         <nav className="space-y-1">
@@ -484,7 +427,7 @@ export default function HomePage({ user, onJoinRoom, onSignOut }: Props) {
       </div>
 
       {/* Upgrade to Pro Card */}
-      <div className="relative overflow-hidden bg-gradient-to-br from-[#FFEBEB] via-[#F6EEFF] to-[#EBE9FE] dark:from-[#35252b] dark:to-[#1e1d35] border border-red-100/50 dark:border-white/5 p-5 rounded-2xl">
+      <div className="relative overflow-hidden bg-gradient-to-br from-[#FFEBEB] via-[#F6EEFF] to-[#EBE9FE] dark:from-[#35252b] dark:to-[#1e1d35] border border-[#FFE2E2] dark:border-[#2E2B27] bg-clip-padding p-5 rounded-2xl">
         {/* Soft background glow circles */}
         <div className="absolute -top-6 -right-6 w-16 h-16 rounded-full bg-[#FF6A2E]/20 blur-md pointer-events-none"></div>
         <div className="absolute -bottom-6 -left-6 w-16 h-16 rounded-full bg-[#8B5CF6]/20 blur-md pointer-events-none"></div>
@@ -613,15 +556,8 @@ export default function HomePage({ user, onJoinRoom, onSignOut }: Props) {
                   <Settings className="w-4 h-4 mr-2" />
                   Account Settings
                 </DropdownMenuItem>
-                <DropdownMenuItem 
-                  onSelect={() => toast.info("Meetings history logs coming soon.")}
-                  className="rounded-xl px-3 py-2 text-[14px] text-stone-700 dark:text-stone-300 focus:bg-stone-50 dark:focus:bg-[#262421] cursor-pointer"
-                >
-                  <Clock className="w-4 h-4 mr-2" />
-                  Meeting History
-                </DropdownMenuItem>
                 <DropdownMenuSeparator className="bg-[#E5DED5]/30 dark:bg-[#2E2B27]" />
-                <DropdownMenuItem 
+                <DropdownMenuItem
                   onSelect={onSignOut}
                   className="rounded-xl px-3 py-2 text-[14px] text-red-600 dark:text-red-400 focus:bg-red-50 dark:focus:bg-red-950/20 cursor-pointer"
                 >
@@ -654,13 +590,13 @@ export default function HomePage({ user, onJoinRoom, onSignOut }: Props) {
                     {/* Live Cards Row — user-pinned rooms, featured in this style */}
                     {pinnedRooms.length > 0 ? (
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        {pinnedRooms.slice(0, 2).map((room, idx) => {
+                        {pinnedRooms.map((room, idx) => {
                           const theme = cardThemes[idx % cardThemes.length]
                           return (
                             <div
                               key={room.id}
                               onClick={() => onJoinRoom(room.id)}
-                              className={cn("group relative overflow-hidden bg-gradient-to-br rounded-3xl p-6 shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer border", theme.cardBg, theme.cardBorder)}
+                              className={cn("group relative overflow-hidden bg-gradient-to-br rounded-3xl p-6 shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer border bg-clip-padding", theme.cardBg, theme.cardBorder)}
                             >
                               <div className={cn("absolute -bottom-10 -right-10 w-44 h-44 rounded-full blur-md pointer-events-none group-hover:scale-110 transition-transform duration-500", theme.blob1)} />
                               <div className={cn("absolute bottom-6 -right-16 w-36 h-36 rounded-full blur-xs pointer-events-none group-hover:translate-x-2 transition-transform duration-500", theme.blob2)} />
@@ -721,7 +657,7 @@ export default function HomePage({ user, onJoinRoom, onSignOut }: Props) {
                       <div className="space-y-4">
                         {upcomingMeetings.length === 0 && (
                           <p className="text-[14px] text-stone-400 dark:text-stone-500 text-center py-4">
-                            No upcoming meetings — schedule one from the Calendar tab or Quick Actions.
+                            No upcoming meetings — schedule one from the Calendar tab.
                           </p>
                         )}
                         {upcomingMeetings.slice(0, 5).map((meeting) => (
@@ -753,7 +689,7 @@ export default function HomePage({ user, onJoinRoom, onSignOut }: Props) {
                     </div>
                   </div>
 
-                  {/* Right: Donut chart & Quick Actions */}
+                  {/* Right: Donut chart */}
                   <div className="lg:col-span-4 space-y-8">
                     {/* Donut Statistics Box */}
                     <div className="bg-white dark:bg-[#1D1B19] border border-[#E5DED5]/40 dark:border-[#2E2B27] rounded-3xl p-6 shadow-sm">
@@ -795,41 +731,6 @@ export default function HomePage({ user, onJoinRoom, onSignOut }: Props) {
                           </div>
                           <span className="text-[14px] font-bold text-stone-900 dark:text-white">{pinnedRooms.length}</span>
                         </div>
-                      </div>
-                    </div>
-
-                    {/* Quick Actions List Box */}
-                    <div className="bg-white dark:bg-[#1D1B19] border border-[#E5DED5]/40 dark:border-[#2E2B27] rounded-3xl p-6 shadow-sm">
-                      <h3 className="text-lg font-bold text-stone-900 dark:text-white mb-5">Quick Actions</h3>
-                      <div className="space-y-2">
-                        <button onClick={() => setDialogOpen(true)} className="w-full flex items-center justify-between p-3.5 hover:bg-stone-50 dark:hover:bg-stone-900/60 rounded-2xl transition-colors cursor-pointer text-left group">
-                          <div className="flex items-center gap-3">
-                            <Calendar className="w-5 h-5 text-stone-400 dark:text-stone-500" />
-                            <span className="text-[14px] font-semibold text-stone-700 dark:text-stone-300">Schedule Meeting</span>
-                          </div>
-                          <ChevronRight className="w-4 h-4 text-stone-300 group-hover:text-[#FF6A2E] dark:group-hover:text-[#F37338] transition-colors" />
-                        </button>
-                        <button onClick={copyInviteLink} className="w-full flex items-center justify-between p-3.5 hover:bg-stone-50 dark:hover:bg-stone-900/60 rounded-2xl transition-colors cursor-pointer text-left group">
-                          <div className="flex items-center gap-3">
-                            <Users className="w-5 h-5 text-stone-400 dark:text-stone-500" />
-                            <span className="text-[14px] font-semibold text-stone-700 dark:text-stone-300">Invite People</span>
-                          </div>
-                          <ChevronRight className="w-4 h-4 text-stone-300 group-hover:text-[#FF6A2E] dark:group-hover:text-[#F37338] transition-colors" />
-                        </button>
-                        <button onClick={startInstantMeeting} className="w-full flex items-center justify-between p-3.5 hover:bg-stone-50 dark:hover:bg-stone-900/60 rounded-2xl transition-colors cursor-pointer text-left group">
-                          <div className="flex items-center gap-3">
-                            <Video className="w-5 h-5 text-stone-400 dark:text-stone-500" />
-                            <span className="text-[14px] font-semibold text-stone-700 dark:text-stone-300">Start Instant Meeting</span>
-                          </div>
-                          <ChevronRight className="w-4 h-4 text-stone-300 group-hover:text-[#FF6A2E] dark:group-hover:text-[#F37338] transition-colors" />
-                        </button>
-                        <button onClick={() => toast.info("To share your screen, start/join any room first.")} className="w-full flex items-center justify-between p-3.5 hover:bg-stone-50 dark:hover:bg-stone-900/60 rounded-2xl transition-colors cursor-pointer text-left group">
-                          <div className="flex items-center gap-3">
-                            <Monitor className="w-5 h-5 text-stone-400 dark:text-stone-500" />
-                            <span className="text-[14px] font-semibold text-stone-700 dark:text-stone-300">Share Screen</span>
-                          </div>
-                          <ChevronRight className="w-4 h-4 text-stone-300 group-hover:text-[#FF6A2E] dark:group-hover:text-[#F37338] transition-colors" />
-                        </button>
                       </div>
                     </div>
                   </div>
@@ -1255,79 +1156,7 @@ export default function HomePage({ user, onJoinRoom, onSignOut }: Props) {
               </div>
             )}
 
-            {currentTab === "contacts" && (
-              <div className="space-y-8 animate-fade-in">
-                {/* Title */}
-                <div>
-                  <h1 className="text-[28px] sm:text-[32px] font-extrabold text-[#141413] dark:text-white leading-tight">Contacts</h1>
-                  <p className="text-[#696969] dark:text-[#A8A29A] text-[15px] mt-1.5 font-medium">
-                    Start instant encrypted calls or connect directly with teammates.
-                  </p>
-                </div>
-
-                {/* Contacts grid */}
-                <div className="bg-white dark:bg-[#1D1B19] border border-[#E5DED5]/40 dark:border-[#2E2B27] rounded-3xl p-6 shadow-sm space-y-6">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                    <h2 className="text-lg font-bold text-stone-900 dark:text-white">All Contacts ({contacts.length})</h2>
-                    <form
-                      onSubmit={(e) => { e.preventDefault(); fetchContacts(contactSearch) }}
-                      className="relative max-w-xs w-full"
-                    >
-                      <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400" />
-                      <input
-                        type="text"
-                        placeholder="Search contact..."
-                        value={contactSearch}
-                        onChange={(e) => {
-                          setContactSearch(e.target.value)
-                          fetchContacts(e.target.value)
-                        }}
-                        className="w-full pl-9 pr-4 py-2 border border-stone-200 dark:border-stone-800 rounded-xl bg-[#F4F4F4]/30 dark:bg-stone-900 text-xs outline-none focus:border-[#FF6A2E]"
-                      />
-                    </form>
-                  </div>
-
-                  {contactsLoading && (
-                    <div className="py-12 flex justify-center items-center">
-                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#FF6A2E]" />
-                    </div>
-                  )}
-
-                  {!contactsLoading && contacts.length === 0 && (
-                    <div className="py-12 text-center">
-                      <Users className="w-12 h-12 text-stone-300 dark:text-stone-700 mx-auto mb-4" />
-                      <h4 className="text-[15px] font-semibold text-stone-900 dark:text-white">No contacts found</h4>
-                      <p className="text-xs text-stone-400 dark:text-stone-500 mt-1">Other registered users will show up here.</p>
-                    </div>
-                  )}
-
-                  {!contactsLoading && contacts.length > 0 && (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {contacts.map((contact) => {
-                        const contactName = contact.first_name || contact.username
-                        return (
-                          <div key={contact.id} className="flex items-center justify-between p-4 bg-[#FAFAFA] dark:bg-[#141312] border border-[#E5DED5]/20 dark:border-[#2E2B27]/40 rounded-2xl">
-                            <div className="flex items-center gap-3 min-w-0">
-                              <Avatar className="w-[42px] h-[42px] border border-stone-200 dark:border-stone-850 shrink-0">
-                                <AvatarFallback className="bg-[#FF6A2E] text-white font-semibold">{getInitials(contactName)}</AvatarFallback>
-                              </Avatar>
-                              <div className="min-w-0">
-                                <h4 className="text-[14px] font-bold text-stone-900 dark:text-white leading-tight truncate">{contactName}</h4>
-                                <span className="text-[11px] text-stone-400 font-medium truncate block">{contact.email || contact.username}</span>
-                              </div>
-                            </div>
-                            <button onClick={() => callContact(contact)} className="p-2.5 bg-[#FF6A2E] hover:bg-[#FF6A2E]/90 text-white rounded-xl shadow-sm transition-colors cursor-pointer shrink-0" title="Call">
-                              <Video className="w-4 h-4" />
-                            </button>
-                          </div>
-                        )
-                      })}
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-</div>
+          </div>
         </main>
 
       </div>

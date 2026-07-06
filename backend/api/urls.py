@@ -13,7 +13,6 @@ urlpatterns = [
     path('rooms/<uuid:room_id>/files/', views.RoomFilesView.as_view(), name='room-files'),
     path('rooms/<uuid:room_id>/recordings/', views.RoomRecordingsView.as_view(), name='room-recordings'),
 
-    path('users/', views.UserListView.as_view(), name='user-list'),
     path('recordings/', views.RecordingListView.as_view(), name='recording-list'),
     path('recordings/<uuid:pk>/', views.RecordingDetailView.as_view(), name='recording-detail'),
     path('meetings/', views.ScheduledMeetingListCreateView.as_view(), name='meeting-list-create'),

@@ -1,6 +1,6 @@
-# Real-time app - Real-Time Video Conferencing & Collaboration Tool
+# MeetFlow - Real-Time Video Conferencing & Collaboration Tool
 
-Real-time app is a secure, real-time video calling and collaboration platform built with React, Django Channels (WebSockets), and WebRTC. It supports multi-user video calling, screen sharing, a shared real-time whiteboard, and end-to-end encrypted (E2EE) messaging and file sharing.
+MeetFlow app is a secure, real-time video calling and collaboration platform built with React, Django Channels (WebSockets), and WebRTC. It supports multi-user video calling, screen sharing, a shared real-time whiteboard, and end-to-end encrypted (E2EE) messaging and file sharing.
 
 **🔗 Live Demo:** [codealpha-tasks-real-time-communication.onrender.com](https://codealpha-tasks-real-time-communication.onrender.com/)
 
@@ -16,8 +16,7 @@ Real-time app is a secure, real-time video calling and collaboration platform bu
 * **Secure File Sharing:** Files are encrypted client-side before upload, stored securely on the backend, and decrypted dynamically upon download by valid room participants.
 * **Encrypted Call Recording:** Records the call client-side by compositing the video grid onto a canvas and mixing every participant's audio, then encrypts the result with the same AES-GCM room key before upload — playback decrypts it again on demand from the Recordings tab.
 * **Calendar & Scheduled Meetings:** Schedule meetings for a real date/time; they appear on a real calendar grid and as a room you can join early or cancel.
-* **Contacts Directory:** A searchable directory of every registered user, with one click to start an encrypted call and share the invite link.
-* **Pinnable Dashboard Rooms:** Pin any room to feature it on the dashboard as a live-status card, with real per-user room statistics (scheduled / instant / pinned).
+* **Pinnable Dashboard Rooms:** Pin any room to feature it on the dashboard as a live-status card — pin as many as you like, with real per-user room statistics (scheduled / instant / pinned).
 * **In-Call Reactions & Raise Hand:** Emoji reactions and hand-raise state are broadcast to every participant in real time over the room's WebSocket channel.
 * **Live Synchronized Whiteboard:** A multiplayer canvas enabling collaborative drawing and writing synchronized in real-time via WebSockets.
 * **Secure Authentication:** User sign-up and log-in powered by Django REST Framework Token Authentication.
@@ -27,26 +26,22 @@ Real-time app is a secure, real-time video calling and collaboration platform bu
 ## 📸 Demo & Screenshots
 
 ### Application Walkthrough (WebP Demo)
-![Real-time App Demo](public/demo-walkthrough.webp)
+![Real-time App Demo](public/demo-walkthrough.webm)
 
 
 ### Screenshots
 
-| Sign In / Sign Up | Dashboard (pinned room + real stats) |
+| Sign In / Sign Up | Dashboard (pinned rooms + real stats) |
 |---|---|
 | ![Authentication Screen](public/screenshot-auth.png) | ![Home Screen](public/screenshot-home.png) |
 
-| Calendar (real scheduled meetings) | Contacts Directory |
+| Calendar (real scheduled meetings) | Recordings (encrypted playback) |
 |---|---|
-| ![Calendar Screen](public/screenshot-calendar.png) | ![Contacts Screen](public/screenshot-contacts.png) |
+| ![Calendar Screen](public/screenshot-calendar.png) | ![Recordings Screen](public/screenshot-recordings.png) |
 
-| Recordings (encrypted playback) | In-Call Reactions & Raise Hand |
+| Room (End-to-End Encrypted) | In-Call Reactions & Raise Hand |
 |---|---|
-| ![Recordings Screen](public/screenshot-recordings.png) | ![Room reactions screen](public/screenshot-room-reaction.png) |
-
-| Room (End-to-End Encrypted) |
-|---|
-| ![Room Chat Screen](public/screenshot-room.png) |
+| ![Room Chat Screen](public/screenshot-room.png) | ![Room reactions screen](public/screenshot-room-reaction.png) |
 
 ---
 

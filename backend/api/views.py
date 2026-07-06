@@ -237,21 +237,6 @@ class RoomFilesView(APIView):
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
-class UserListView(generics.ListAPIView):
-    """Directory of all other registered users, for the Contacts page."""
-    serializer_class = UserSerializer
-    permission_classes = [IsAuthenticated]
-
-    def get_queryset(self):
-        queryset = User.objects.exclude(pk=self.request.user.pk).order_by('username')
-        search = self.request.query_params.get('search')
-        if search:
-            queryset = queryset.filter(
-                Q(username__icontains=search) | Q(first_name__icontains=search) | Q(email__icontains=search)
-            )
-        return queryset
-
-
 class RoomRecordingsView(APIView):
     permission_classes = [IsAuthenticated]
 

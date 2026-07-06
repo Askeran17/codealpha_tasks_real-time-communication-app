@@ -382,41 +382,6 @@ class RoomFilesViewTests(TestCase):
         self.assertEqual(returned_ids, [str(second.id), str(first.id)])
 
 
-class UserListViewTests(TestCase):
-    def setUp(self):
-        self.client = APIClient()
-        self.user = User.objects.create_user(username='alice@example.com', password='pw123456', first_name='Alice')
-        self.other = User.objects.create_user(username='bob@example.com', password='pw123456', first_name='Bob')
-        self.token = Token.objects.create(user=self.user)
-        self.client.credentials(HTTP_AUTHORIZATION='Token ' + self.token.key)
-
-    def test_lists_other_users_but_excludes_self(self):
-        response = self.client.get(reverse('user-list'))
-
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        usernames = [u['username'] for u in response.data]
-        self.assertIn('bob@example.com', usernames)
-        self.assertNotIn('alice@example.com', usernames)
-
-    def test_search_filters_by_username_or_display_name(self):
-        response = self.client.get(reverse('user-list'), {'search': 'Bob'})
-
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        usernames = [u['username'] for u in response.data]
-        self.assertEqual(usernames, ['bob@example.com'])
-
-    def test_search_with_no_matches_returns_empty(self):
-        response = self.client.get(reverse('user-list'), {'search': 'nobody-like-this'})
-
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.data, [])
-
-    def test_requires_authentication(self):
-        self.client.credentials()
-        response = self.client.get(reverse('user-list'))
-        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
-
-
 class RoomRecordingsViewTests(TestCase):
     def setUp(self):
         self.client = APIClient()

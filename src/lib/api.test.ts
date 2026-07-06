@@ -146,26 +146,6 @@ describe("api", () => {
     ])
   })
 
-  it("omits the search query param from listUsers when no search term is given", async () => {
-    setToken("some-token")
-    vi.mocked(fetch).mockResolvedValueOnce(jsonResponse([]))
-
-    await api.listUsers()
-
-    const [url] = vi.mocked(fetch).mock.calls[0]
-    expect(url).not.toContain("?search=")
-  })
-
-  it("encodes the search term as a query param on listUsers", async () => {
-    setToken("some-token")
-    vi.mocked(fetch).mockResolvedValueOnce(jsonResponse([]))
-
-    await api.listUsers("jane doe")
-
-    const [url] = vi.mocked(fetch).mock.calls[0]
-    expect(url).toContain("users/?search=jane%20doe")
-  })
-
   it("posts the meeting fields with a snake_case body on createMeeting", async () => {
     setToken("some-token")
     vi.mocked(fetch).mockResolvedValueOnce(
