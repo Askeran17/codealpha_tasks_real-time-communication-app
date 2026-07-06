@@ -14,7 +14,7 @@ MeetFlow app is a secure, real-time video calling and collaboration platform bui
 * **Screen Sharing:** Instant screen sharing directly integrated into WebRTC peer tracks.
 * **End-to-End Encrypted Chat:** Private text chat secured client-side via **AES-GCM (256-bit)**. Keys are derived dynamically using the Web Crypto API based on the Room ID, ensuring the server only sees encrypted ciphertexts.
 * **Secure File Sharing:** Files are encrypted client-side before upload, stored securely on the backend, and decrypted dynamically upon download by valid room participants.
-* **Encrypted Call Recording:** Records the call client-side by compositing the video grid onto a canvas and mixing every participant's audio, then encrypts the result with the same AES-GCM room key before upload — playback decrypts it again on demand from the Recordings tab.
+* **Video Meeting & Call Recording:** Records video meetings and audio calls client-side by compositing the video grid onto a canvas and mixing every participant's audio, then encrypts the result with the same AES-GCM room key before upload — playback decrypts it again on demand from the Recordings tab.
 * **Calendar & Scheduled Meetings:** Schedule meetings for a real date/time; they appear on a real calendar grid and as a room you can join early or cancel.
 * **Pinnable Dashboard Rooms:** Pin any room to feature it on the dashboard as a live-status card — pin as many as you like, with real per-user room statistics (scheduled / instant / pinned).
 * **In-Call Reactions & Raise Hand:** Emoji reactions and hand-raise state are broadcast to every participant in real time over the room's WebSocket channel.
@@ -26,7 +26,7 @@ MeetFlow app is a secure, real-time video calling and collaboration platform bui
 ## 📸 Demo & Screenshots
 
 ### Application Walkthrough (WebP Demo)
-![Real-time App Demo](public/demo-walkthrough.webm)
+![Real-time App Demo](public/demo-walkthrough.webp)
 
 
 ### Screenshots
@@ -42,6 +42,23 @@ MeetFlow app is a secure, real-time video calling and collaboration platform bui
 | Room (End-to-End Encrypted) | In-Call Reactions & Raise Hand |
 |---|---|
 | ![Room Chat Screen](public/screenshot-room.png) | ![Room reactions screen](public/screenshot-room-reaction.png) |
+
+| Live Collaborative Whiteboard (Multiplayer canvas for real-time drawing and brainstorming) |
+|---|
+| ![Interactive Whiteboard Screen](public/screenshot-whiteboard.png) |
+
+---
+
+## 💡 Future Features & Ideas
+
+Here are some potential features and improvements that can be implemented for this project:
+
+* **Breakout Rooms:** Allow meeting hosts to split participants into smaller sub-rooms for focused discussion groups.
+* **Advanced Whiteboard Tools:** Add shapes, text boxes, image insertion, and template exporting to the whiteboard canvas.
+* **Virtual Backgrounds & Blur:** Enable client-side background blur or virtual image replacement using TensorFlow.js body segmentation.
+* **Screen Sharing Annotations:** Allow participants to draw directly over a shared screen stream.
+* **AI-Powered Call Transcription:** Auto-generate encrypted meeting transcripts and summaries.
+* **Contact Us Inquiries & Newsletters:** Integrate an email service (like SendGrid or Mailgun) to process user messages sent via the *Contact Us* page and manage marketing or announcement newsletter subscriptions.
 
 ---
 

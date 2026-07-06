@@ -27,19 +27,15 @@ import {
   Users,
   Shield,
   Link2,
-  Settings,
-  Crown,
   ChevronDown,
   X,
-  Menu,
   Maximize2,
   Volume2,
   Smile,
   MoreHorizontal,
   MoreVertical,
-  Folder,
-  ChevronRight,
-  Hand
+  Hand,
+  Pencil
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -54,7 +50,6 @@ type Panel = "chat" | "files" | "people" | "whiteboard" | null
 export default function RoomPage({ roomId, user, onLeave }: Props) {
   const [activePanel, setActivePanel] = useState<Panel>("chat")
   const [seconds, setSeconds] = useState(0) // Starting meeting timer from zero
-  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [pinnedPeerId, setPinnedPeerId] = useState<string | null>(null)
   const [audioInputs, setAudioInputs] = useState<MediaDeviceInfo[]>([])
@@ -194,85 +189,7 @@ export default function RoomPage({ roomId, user, onLeave }: Props) {
   }
 
 
-  // Sidebar navigation links definition (dark mode version) — these all
-  // toggle panels within the room itself.
-  const navItems: { name: string; icon: any; active: boolean; onClick: () => void; badge?: number }[] = [
-    { name: "Chats", icon: MessageSquare, active: activePanel === "chat", onClick: () => togglePanel("chat") },
-    { name: "People", icon: Users, active: activePanel === "people", onClick: () => togglePanel("people") },
-    { name: "Files", icon: Folder, active: activePanel === "files", onClick: () => togglePanel("files") },
-    { name: "Settings", icon: Settings, active: settingsOpen, onClick: () => setSettingsOpen(true) },
-  ]
 
-  const sidebarContent = (
-    <div className="flex flex-col h-full justify-between select-none">
-      {/* Brand logo */}
-      <div>
-        <div className="flex items-center gap-3 px-2 mb-8">
-          <div className="w-10 h-10 bg-gradient-to-br from-[#FF6A2E] to-[#FF3E1D] rounded-2xl flex items-center justify-center shadow-md shadow-orange-500/20 shrink-0">
-            <VideoIcon className="w-5 h-5 text-white" />
-          </div>
-          <span className="text-xl font-extrabold tracking-tight">
-            <span className="text-white">Meet</span>
-            <span className="text-[#FF6A2E]">Flow</span>
-          </span>
-        </div>
-
-        {/* Navigation list */}
-        <nav className="space-y-1">
-          {navItems.map((item) => {
-            const Icon = item.icon
-            return (
-              <button
-                key={item.name}
-                onClick={() => {
-                  item.onClick()
-                  setMobileSidebarOpen(false)
-                }}
-                className={cn(
-                  "w-full flex items-center justify-between px-3 py-3 text-[15px] font-medium rounded-xl transition-all duration-200 cursor-pointer text-left",
-                  item.active
-                    ? "bg-[#1C1C21] text-[#FF6A2E]"
-                    : "text-stone-400 hover:bg-[#1A1A20] hover:text-white"
-                )}
-              >
-                <div className="flex items-center gap-3.5">
-                  <Icon className={cn("w-[21px] h-[21px]", item.active ? "text-[#FF6A2E]" : "text-stone-500")} />
-                  {item.name}
-                </div>
-                {item.badge && (
-                  <span className="w-5 h-5 bg-[#FF2E63] text-white text-[10px] font-bold rounded-full flex items-center justify-center">
-                    {item.badge}
-                  </span>
-                )}
-              </button>
-            )
-          })}
-        </nav>
-      </div>
-
-      {/* Upgrade to Pro Card */}
-      <div className="relative overflow-hidden bg-gradient-to-br from-[#2E1E1E] to-[#171626] border border-[#2C2A3A] bg-clip-padding p-5 rounded-2xl">
-        {/* Soft background glow circles */}
-        <div className="absolute -top-6 -right-6 w-16 h-16 rounded-full bg-[#FF6A2E]/10 blur-md pointer-events-none"></div>
-        <div className="absolute -bottom-6 -left-6 w-16 h-16 rounded-full bg-[#8B5CF6]/10 blur-md pointer-events-none"></div>
-        
-        <div className="w-9 h-9 bg-white/5 rounded-lg shadow-sm flex items-center justify-center mb-4">
-          <Crown className="w-4 h-4 text-amber-500 fill-amber-500" />
-        </div>
-        <h3 className="text-base font-bold text-white mb-1.5">Upgrade to Pro</h3>
-        <p className="text-xs text-stone-400 leading-relaxed mb-4">
-          Unlock premium features and enhanced security.
-        </p>
-        <button 
-          onClick={() => toast.info("Premium plans are currently invitation-only.")}
-          className="w-full py-2.5 px-4 bg-gradient-to-r from-[#FF6A2E] to-[#FF2E63] text-white text-sm font-semibold rounded-xl hover:opacity-95 transition-opacity shadow-sm shadow-red-500/10 cursor-pointer flex items-center justify-center gap-1"
-        >
-          Upgrade Now
-          <ChevronRight className="w-3.5 h-3.5" />
-        </button>
-      </div>
-    </div>
-  )
 
   return (
     <div 
@@ -281,48 +198,12 @@ export default function RoomPage({ roomId, user, onLeave }: Props) {
     >
       <SettingsDialog user={user} open={settingsOpen} onOpenChange={setSettingsOpen} />
 
-      {/* Desktop Sidebar (Left side panel) */}
-      <aside className="hidden lg:block w-[280px] bg-[#111214] border-r border-white/5 p-6 shrink-0 h-full">
-        {sidebarContent}
-      </aside>
-
-      {/* Mobile Drawer Sidebar Backdrop */}
-      {mobileSidebarOpen && (
-        <div 
-          className="lg:hidden fixed inset-0 bg-stone-900/80 backdrop-blur-sm z-50 transition-opacity"
-          onClick={() => setMobileSidebarOpen(false)}
-        />
-      )}
-
-      {/* Mobile Sidebar Slider */}
-      <aside 
-        className={cn(
-          "lg:hidden fixed inset-y-0 left-0 w-[280px] bg-[#111214] border-r border-white/5 p-6 z-50 transition-transform duration-300 transform",
-          mobileSidebarOpen ? "translate-x-0" : "-translate-x-full"
-        )}
-      >
-        <button 
-          className="absolute top-4 right-4 p-1.5 rounded-lg hover:bg-stone-900 text-stone-400 cursor-pointer"
-          onClick={() => setMobileSidebarOpen(false)}
-        >
-          <X className="w-5 h-5" />
-        </button>
-        {sidebarContent}
-      </aside>
-
       {/* Main Calling Column */}
       <div className="flex-1 flex flex-col min-w-0 h-full">
         
         {/* Topbar Header */}
         <header className="bg-[#111214]/65 backdrop-blur-md px-6 h-20 shrink-0 border-b border-white/5 flex items-center justify-between z-20">
           <div className="flex items-center gap-3">
-            {/* Mobile Sidebar Button */}
-            <button 
-              className="lg:hidden p-2 rounded-xl bg-white/5 hover:bg-white/10 text-stone-300 cursor-pointer"
-              onClick={() => setMobileSidebarOpen(true)}
-            >
-              <Menu className="w-5 h-5" />
-            </button>
             <h2 className="text-lg font-bold">Team Sync Meeting</h2>
             
             {/* LIVE indicator */}
@@ -369,6 +250,7 @@ export default function RoomPage({ roomId, user, onLeave }: Props) {
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="rounded-xl bg-[#111214] border border-white/5 text-white">
+                <DropdownMenuItem onSelect={() => setSettingsOpen(true)} className="text-white hover:text-white cursor-pointer focus:bg-white/10 focus:text-white">Settings</DropdownMenuItem>
                 <DropdownMenuItem onSelect={handleCopyInviteLink} className="text-white hover:text-white cursor-pointer focus:bg-white/10 focus:text-white">Copy Invite Link</DropdownMenuItem>
                 <DropdownMenuItem onSelect={onLeave} className="text-white hover:text-white cursor-pointer focus:bg-white/10 focus:text-white">Leave Conference</DropdownMenuItem>
               </DropdownMenuContent>
@@ -571,13 +453,13 @@ export default function RoomPage({ roomId, user, onLeave }: Props) {
           {activePanel && (
             <div
               className={cn(
-                "flex-none w-85 h-full overflow-hidden flex flex-col bg-[#121214] border border-white/5 rounded-3xl shrink-0 z-10",
-                activePanel === "whiteboard" && "w-96"
+                "flex-none h-full overflow-hidden flex flex-col bg-[#121214] border border-white/5 rounded-3xl shrink-0 z-10 w-96 transition-all duration-300",
+                activePanel === "whiteboard" && "w-[450px]"
               )}
             >
               {/* Right Panel Header */}
               <div className="flex items-center justify-between px-5 py-4 border-b border-white/5 bg-[#121214] shrink-0">
-                <div className="flex items-center gap-6">
+                <div className="flex items-center gap-4">
                   <button 
                     onClick={() => setActivePanel("chat")}
                     className={cn(
@@ -798,6 +680,27 @@ export default function RoomPage({ roomId, user, onLeave }: Props) {
                 <TooltipContent>Toggle Chat panel</TooltipContent>
               </Tooltip>
               <span className="text-[12px] font-semibold text-stone-400/90 mt-1">Chat</span>
+            </div>
+
+            {/* Whiteboard toggle */}
+            <div className="flex flex-col items-center gap-2">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    onClick={() => togglePanel("whiteboard")}
+                    className={cn(
+                      "w-14 h-14 rounded-full flex items-center justify-center cursor-pointer transition-colors text-white border",
+                      activePanel === "whiteboard" 
+                        ? "bg-gradient-to-br from-[#FF6A2E] to-[#FF2E63] border-transparent" 
+                        : "bg-white/5 hover:bg-white/10 border-white/5"
+                    )}
+                  >
+                    <Pencil className="w-[22px] h-[22px]" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent>Toggle Whiteboard panel</TooltipContent>
+              </Tooltip>
+              <span className="text-[12px] font-semibold text-stone-400/90 mt-1">Whiteboard</span>
             </div>
 
             {/* Hand raise */}

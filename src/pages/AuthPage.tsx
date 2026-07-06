@@ -24,14 +24,14 @@ function ProductSubpage({ openAuth }: { openAuth: (mode: "signin" | "signup") =>
         <div>
           <h2 style={{ fontSize: '32px', fontWeight: 800, letterSpacing: '-0.8px', marginBottom: '20px', color: '#17181C' }}>Client-Side End-to-End Encryption</h2>
           <p style={{ fontSize: '17px', lineHeight: 1.65, color: '#55575E', marginBottom: '24px' }}>
-            Unlike standard video systems where the server decrypts your data in the cloud, MeetFlow derives cryptographic keys directly in your browser. All audio, video, text chat, and files are encrypted before sending and decrypted only by other room participants. 
+            Unlike standard video systems where the server decrypts your data in the cloud, MeetFlow derives cryptographic keys directly in your browser. All audio, video, text chat, and files are encrypted before sending and decrypted only by other room participants.
           </p>
           <div style={{ display: 'flex', gap: '12px', alignItems: 'center', color: '#E52B03', fontWeight: 700, fontSize: '15px' }}>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></svg>
             <span>AES-256-GCM Military Grade Protocol</span>
           </div>
         </div>
-        
+
         <div style={{ background: '#121316', border: '1px solid #2A2C30', borderRadius: '16px', boxShadow: '0 20px 40px rgba(0,0,0,0.18)', overflow: 'hidden' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 18px', background: '#1A1C20', borderBottom: '1px solid #25272C' }}>
             <div style={{ width: '11px', height: '11px', borderRadius: '50%', background: '#FF5F56' }}></div>
@@ -64,7 +64,7 @@ function ProductSubpage({ openAuth }: { openAuth: (mode: "signin" | "signup") =>
           </p>
           <button onClick={() => openAuth("signup")} style={{ background: 'linear-gradient(150deg, #FF4A16, #E52603)', border: 'none', color: '#ffffff', fontSize: '16px', fontWeight: 700, padding: '14px 26px', borderRadius: '11px', cursor: 'pointer', boxShadow: '0 6px 16px rgba(229,38,3,0.25)' }} className="btn-hover-glow">Try Collaborative Board</button>
         </div>
-        
+
         <div style={{ order: 1, background: '#ffffff', border: '1px solid #E8E2DC', borderRadius: '20px', padding: '16px', boxShadow: '0 20px 45px rgba(23,24,28,0.06)', display: 'flex', flexDirection: 'column', gap: '12px' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #F0EAE4', paddingBottom: '10px' }}>
             <div style={{ display: 'flex', gap: '6px' }}>
@@ -74,17 +74,17 @@ function ProductSubpage({ openAuth }: { openAuth: (mode: "signin" | "signup") =>
             </div>
             <div style={{ display: 'flex', gap: '8px', background: '#F8F6F4', padding: '4px 10px', borderRadius: '8px', border: '1px solid #EAE4DE' }}>
               <div style={{ color: '#F42B03', display: 'flex', alignItems: 'center' }}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 20h9" /><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" /></svg>
               </div>
               <div style={{ color: '#55575E', display: 'flex', alignItems: 'center' }}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><rect x="3" y="3" width="18" height="18" rx="2"/></svg>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><rect x="3" y="3" width="18" height="18" rx="2" /></svg>
               </div>
               <div style={{ color: '#55575E', display: 'flex', alignItems: 'center' }}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="10"/></svg>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="10" /></svg>
               </div>
               <div style={{ width: '1px', height: '14px', background: '#E8E2DC' }}></div>
               <div style={{ color: '#55575E', display: 'flex', alignItems: 'center' }}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="m7 21 0-4 4-4 4 4 0 4Z"/><path d="M7 17 21 3"/></svg>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="m7 21 0-4 4-4 4 4 0 4Z" /><path d="M7 17 21 3" /></svg>
               </div>
             </div>
           </div>
@@ -103,24 +103,36 @@ function ProductSubpage({ openAuth }: { openAuth: (mode: "signin" | "signup") =>
 
 function FeaturesSubpage({ openAuth }: { openAuth: (mode: "signin" | "signup") => void }) {
   const fList = [
-    { title: 'Screen Sharing', desc: 'Broadcast your desktop screen or window with ultra-low latency WebRTC channels.', icon: (
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8"/><path d="M12 17v4"/></svg>
-    )},
-    { title: 'Interactive Canvas', desc: 'Sketches, notes, flowcharts — draw together with team members on a live shared whiteboard.', icon: (
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
-    )},
-    { title: 'AES-256 Encryption', desc: 'Secure E2EE chat messaging and files using direct client-side cryptographic hashing.', icon: (
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-    )},
-    { title: 'HD Audio & Video', desc: 'Crystal-clear sound and sharp high-definition peer connection profiles.', icon: (
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="6" width="13" height="12" rx="3"/><path d="m16 10.5 5-3v9l-5-3v-3Z"/></svg>
-    )},
-    { title: 'Session Tracker', desc: 'Accurate dynamic session timers to log duration and keep meetings on track.', icon: (
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-    )},
-    { title: 'Access tokens', desc: 'Encrypted room URLs. Nobody can join your room without the secret cryptographic path token.', icon: (
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><circle cx="7.5" cy="15.5" r="5.5"/><path d="m21 2-9.6 9.6"/><path d="m15.5 7.5 3 3h3v-2h-3v-1Z"/></svg>
-    )}
+    {
+      title: 'Screen Sharing', desc: 'Broadcast your desktop screen or window with ultra-low latency WebRTC channels.', icon: (
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" /><path d="M8 21h8" /><path d="M12 17v4" /></svg>
+      )
+    },
+    {
+      title: 'Interactive Canvas', desc: 'Sketches, notes, flowcharts — draw together with team members on a live shared whiteboard.', icon: (
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9" /><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" /></svg>
+      )
+    },
+    {
+      title: 'AES-256 Encryption', desc: 'Secure E2EE chat messaging and files using direct client-side cryptographic hashing.', icon: (
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>
+      )
+    },
+    {
+      title: 'HD Audio & Video', desc: 'Crystal-clear sound and sharp high-definition peer connection profiles.', icon: (
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="6" width="13" height="12" rx="3" /><path d="m16 10.5 5-3v9l-5-3v-3Z" /></svg>
+      )
+    },
+    {
+      title: 'Session Tracker', desc: 'Accurate dynamic session timers to log duration and keep meetings on track.', icon: (
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>
+      )
+    },
+    {
+      title: 'Access tokens', desc: 'Encrypted room URLs. Nobody can join your room without the secret cryptographic path token.', icon: (
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><circle cx="7.5" cy="15.5" r="5.5" /><path d="m21 2-9.6 9.6" /><path d="m15.5 7.5 3 3h3v-2h-3v-1Z" /></svg>
+      )
+    }
   ]
 
   return (
@@ -230,14 +242,14 @@ function PricingSubpage({ openAuth }: { openAuth: (mode: "signin" | "signup") =>
             )}
             <h3 style={{ fontSize: '22px', fontWeight: 800, color: '#1A1B1F', margin: '0 0 10px 0' }}>{p.name}</h3>
             <p style={{ fontSize: '14px', lineHeight: 1.5, color: '#55575E', margin: '0 0 24px 0', minHeight: '44px' }}>{p.desc}</p>
-            
+
             <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px', marginBottom: '28px' }}>
               <span style={{ fontSize: '46px', fontWeight: 800, color: '#1A1B1F', letterSpacing: '-1px' }}>{p.price}</span>
               <span style={{ fontSize: '15px', color: '#8c8e96', fontWeight: 600 }}>/ {p.period}</span>
             </div>
 
-            <button 
-              onClick={p.onClick} 
+            <button
+              onClick={p.onClick}
               className={p.popular ? "btn-hover-glow" : "btn-hover-white"}
               style={{
                 width: '100%',
@@ -260,7 +272,7 @@ function PricingSubpage({ openAuth }: { openAuth: (mode: "signin" | "signup") =>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
               {p.features.map((feat) => (
                 <div key={feat} style={{ display: 'flex', gap: '10px', alignItems: 'center', fontSize: '14px', color: '#26272B', fontWeight: 500 }}>
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#E52B03" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#E52B03" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
                   <span>{feat}</span>
                 </div>
               ))}
@@ -298,7 +310,7 @@ function ResourcesSubpage() {
             <p style={{ fontSize: '15px', lineHeight: 1.6, color: '#55575E', margin: '0 0 8px 0' }}>{d.desc}</p>
             <a href="#" style={{ color: '#E52B03', fontSize: '15px', fontWeight: 700, textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '6px' }}>
               {d.linkText}
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" /></svg>
             </a>
           </div>
         ))}
@@ -323,7 +335,7 @@ function AboutSubpage() {
         <div>
           <h2 style={{ fontSize: '32px', fontWeight: 800, letterSpacing: '-0.8px', marginBottom: '20px', color: '#17181C' }}>The MeetFlow Story</h2>
           <p style={{ fontSize: '17px', lineHeight: 1.65, color: '#55575E', marginBottom: '20px' }}>
-            MeetFlow was founded in 2025 by a small team of open-source developers who grew tired of standard video platforms reading metadata, recording calls, and keeping encryption keys inside cloud databases. 
+            MeetFlow was founded in 2025 by a small team of open-source developers who grew tired of standard video platforms reading metadata, recording calls, and keeping encryption keys inside cloud databases.
           </p>
           <p style={{ fontSize: '17px', lineHeight: 1.65, color: '#55575E', marginBottom: '0px' }}>
             We engineered a WebRTC-based architecture that delegates all cryptography directly to the client browser. MeetFlow servers never see your video frames or whiteboard drawing paths—making it impossible for outsiders or hosting companies to access meetings.
@@ -436,7 +448,7 @@ function ContactSubpage() {
           {submitted ? (
             <div style={{ textAlign: 'center', padding: '40px 0' }}>
               <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: 'rgba(244,43,3,0.1)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', marginBottom: '20px', color: '#F42B03' }}>
-                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
               </div>
               <h3 style={{ fontSize: '24px', fontWeight: 800, color: '#17181C', margin: '0 0 10px 0' }}>Message Sent!</h3>
               <p style={{ fontSize: '15px', color: '#55575E', margin: 0 }}>We typically reply within 2 hours.</p>
@@ -472,7 +484,7 @@ function ContactSubpage() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
           <div className="pricing-card-wrap" style={{ background: '#ffffff', border: '1px solid #E8E2DC', borderRadius: '20px', padding: '28px', display: 'flex', gap: '20px', alignItems: 'start', boxShadow: '0 8px 24px rgba(23,24,28,0.01)' }}>
             <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: '#FFF0EC', color: '#F42B03', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" /><polyline points="22,6 12,13 2,6" /></svg>
             </div>
             <div>
               <h4 style={{ fontSize: '16px', fontWeight: 700, color: '#17181C', margin: '0 0 4px 0' }}>Security Team</h4>
@@ -483,7 +495,7 @@ function ContactSubpage() {
 
           <div className="pricing-card-wrap" style={{ background: '#ffffff', border: '1px solid #E8E2DC', borderRadius: '20px', padding: '28px', display: 'flex', gap: '20px', alignItems: 'start', boxShadow: '0 8px 24px rgba(23,24,28,0.01)' }}>
             <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: '#FFF0EC', color: '#F42B03', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" /><line x1="12" y1="17" x2="12.01" y2="17" /></svg>
             </div>
             <div>
               <h4 style={{ fontSize: '16px', fontWeight: 700, color: '#17181C', margin: '0 0 4px 0' }}>General Support</h4>
@@ -675,7 +687,7 @@ export default function AuthPage() {
   const [password, setPassword] = useState("")
   const [displayName, setDisplayName] = useState("")
   const [loading, setLoading] = useState(false)
-  
+
   const [authMode, setAuthMode] = useState<"signin" | "signup">("signin")
   const [modalOpen, setModalOpen] = useState(false)
 
@@ -776,17 +788,17 @@ export default function AuthPage() {
   }
 
   const renderIcon = (name: string, color: string) => {
-    const p = { 
-      width: 26, 
-      height: 26, 
-      viewBox: '0 0 24 24', 
-      fill: 'none', 
-      stroke: color, 
-      strokeWidth: 2.2, 
-      strokeLinecap: 'round' as const, 
-      strokeLinejoin: 'round' as const 
+    const p = {
+      width: 26,
+      height: 26,
+      viewBox: '0 0 24 24',
+      fill: 'none',
+      stroke: color,
+      strokeWidth: 2.2,
+      strokeLinecap: 'round' as const,
+      strokeLinejoin: 'round' as const
     };
-    
+
     if (name === 'video') {
       return (
         <svg width="26" height="26" viewBox="0 0 24 24" fill={color}>
@@ -840,7 +852,8 @@ export default function AuthPage() {
 
   return (
     <div className="root-container">
-      <style dangerouslySetInnerHTML={{ __html: `
+      <style dangerouslySetInnerHTML={{
+        __html: `
         /* === Desktop Base Styles matching paste exactly === */
         .root-container {
           font-family: 'Plus Jakarta Sans', sans-serif;
@@ -1210,8 +1223,8 @@ export default function AuthPage() {
           </div>
           <div className="nav-buttons-wrap" style={{ display: 'flex', alignItems: 'center', gap: '22px' }}>
             <button onClick={() => openAuth("signin")} className="nav-btn-signin" style={{ background: 'none', border: 'none', fontSize: '17px', fontWeight: 600, color: '#ffffff', cursor: 'pointer' }}>Sign in</button>
-            <button 
-              onClick={() => openAuth("signup")} 
+            <button
+              onClick={() => openAuth("signup")}
               className="btn-hover-white nav-btn-signup"
               style={{ fontWeight: 700, color: '#ffffff', textDecoration: 'none', background: 'rgba(255,255,255,0.16)', border: '1px solid rgba(255,255,255,0.45)', padding: '13px 26px', borderRadius: '12px', backdropFilter: 'blur(4px)', transition: 'all 0.2s', cursor: 'pointer' }}
             >
@@ -1245,8 +1258,8 @@ export default function AuthPage() {
               </p>
 
               <div className="hero-buttons-container">
-                <button 
-                  onClick={() => openAuth("signup")} 
+                <button
+                  onClick={() => openAuth("signup")}
                   className="btn-hover-glow"
                   style={{ border: 'none', display: 'flex', alignItems: 'center', gap: '10px', background: 'linear-gradient(150deg, #FF4A16, #E52603)', color: '#ffffff', fontSize: '15px', fontWeight: 700, textDecoration: 'none', padding: '13px 22px', borderRadius: '11px', boxShadow: '0 8px 20px rgba(229,38,3,0.25)', cursor: 'pointer', transition: 'all 0.2s' }}
                 >
@@ -1256,8 +1269,8 @@ export default function AuthPage() {
                   </svg>
                   Start a Free Meeting
                 </button>
-                <button 
-                  onClick={() => openAuth("signin")} 
+                <button
+                  onClick={() => openAuth("signin")}
                   className="btn-hover-white"
                   style={{ display: 'flex', alignItems: 'center', gap: '10px', background: '#ffffff', color: '#1A1B1F', fontSize: '15px', fontWeight: 700, textDecoration: 'none', padding: '13px 22px', borderRadius: '11px', border: '1px solid #E8E2DC', boxShadow: '0 4px 12px rgba(23,24,28,0.05)', cursor: 'pointer', transition: 'all 0.2s' }}
                 >
@@ -1400,8 +1413,8 @@ export default function AuthPage() {
       <div className="features-section">
         <div className="features-grid">
           {features.map((f, i) => (
-            <div 
-              key={f.title} 
+            <div
+              key={f.title}
               className={`feature-card ${i === 0 ? 'feature-card-first' : ''}`}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '18px' }}>
@@ -1434,27 +1447,27 @@ export default function AuthPage() {
               <p style={{ fontSize: '14px', lineHeight: 1.6, margin: 0 }}>
                 Next-generation client-side encrypted video communications. Absolute sovereignty over your team connection.
               </p>
-              
+
               {/* Social Networks Links */}
               <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginTop: '4px' }}>
                 {/* X / Twitter */}
                 <a href="https://x.com" target="_blank" rel="noopener noreferrer" style={{ color: '#55575E', transition: 'color 0.2s' }} className="social-icon-link">
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+                    <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
                   </svg>
                 </a>
                 {/* GitHub */}
                 <a href="https://github.com" target="_blank" rel="noopener noreferrer" style={{ color: '#55575E', transition: 'color 0.2s' }} className="social-icon-link">
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4"/>
-                    <path d="M9 18c-4.51 2-5-2-7-2"/>
+                    <path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4" />
+                    <path d="M9 18c-4.51 2-5-2-7-2" />
                   </svg>
                 </a>
                 {/* Discord */}
                 <a href="https://discord.com" target="_blank" rel="noopener noreferrer" style={{ color: '#55575E', transition: 'color 0.2s' }} className="social-icon-link">
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/>
-                    <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+                    <path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" />
+                    <path d="M13.73 21a2 2 0 0 1-3.46 0" />
                   </svg>
                 </a>
               </div>
@@ -1468,7 +1481,7 @@ export default function AuthPage() {
                 <button onClick={() => handleNavigate("features")} style={{ background: 'none', border: 'none', padding: 0, color: '#9A9CA3', fontSize: '14px', textAlign: 'left', cursor: 'pointer' }} className="footer-link-btn">Features</button>
                 <button onClick={() => handleNavigate("pricing")} style={{ background: 'none', border: 'none', padding: 0, color: '#9A9CA3', fontSize: '14px', textAlign: 'left', cursor: 'pointer' }} className="footer-link-btn">Pricing</button>
               </div>
-              
+
               <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
                 <span style={{ color: '#ffffff', fontWeight: 700, fontSize: '15px' }}>Resources</span>
                 <button onClick={() => handleNavigate("resources")} style={{ background: 'none', border: 'none', padding: 0, color: '#9A9CA3', fontSize: '14px', textAlign: 'left', cursor: 'pointer' }} className="footer-link-btn">Documentation</button>
@@ -1491,30 +1504,30 @@ export default function AuthPage() {
                 Subscribe to get notified about new E2EE security audits, protocol logs, and feature releases.
               </p>
               <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
-                <input 
-                  type="email" 
-                  placeholder="name@company.com" 
-                  style={{ 
-                    background: 'rgba(255,255,255,0.04)', 
-                    border: '1px solid rgba(255,255,255,0.08)', 
-                    borderRadius: '8px', 
-                    color: '#ffffff', 
-                    fontSize: '13px', 
-                    padding: '8px 12px', 
-                    flex: 1, 
+                <input
+                  type="email"
+                  placeholder="name@company.com"
+                  style={{
+                    background: 'rgba(255,255,255,0.04)',
+                    border: '1px solid rgba(255,255,255,0.08)',
+                    borderRadius: '8px',
+                    color: '#ffffff',
+                    fontSize: '13px',
+                    padding: '8px 12px',
+                    flex: 1,
                     outline: 'none',
                     minWidth: '0'
-                  }} 
+                  }}
                 />
-                <button 
-                  style={{ 
-                    background: '#ffffff', 
-                    color: '#101216', 
-                    border: 'none', 
-                    borderRadius: '8px', 
-                    fontSize: '13px', 
-                    fontWeight: 700, 
-                    padding: '8px 14px', 
+                <button
+                  style={{
+                    background: '#ffffff',
+                    color: '#101216',
+                    border: 'none',
+                    borderRadius: '8px',
+                    fontSize: '13px',
+                    fontWeight: 700,
+                    padding: '8px 14px',
                     cursor: 'pointer',
                     whiteSpace: 'nowrap'
                   }}
@@ -1525,10 +1538,10 @@ export default function AuthPage() {
               </div>
             </div>
           </div>
-          
+
           <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: '20px', paddingTop: '24px', borderTop: '1px solid rgba(255,255,255,0.04)', fontSize: '13px' }}>
             <span>© 2026 MeetFlow Inc. All rights reserved.</span>
-            
+
             <div style={{ display: 'flex', gap: '24px' }}>
               <button onClick={() => handleNavigate("privacy")} style={{ background: 'none', border: 'none', padding: 0, color: '#55575E', fontSize: '13px', cursor: 'pointer', transition: 'color 0.2s' }} className="footer-link-btn">Privacy Policy</button>
               <button onClick={() => handleNavigate("terms")} style={{ background: 'none', border: 'none', padding: 0, color: '#55575E', fontSize: '13px', cursor: 'pointer', transition: 'color 0.2s' }} className="footer-link-btn">Terms of Service</button>
@@ -1560,13 +1573,13 @@ export default function AuthPage() {
               {authMode === "signin" ? "Sign in to your account" : "Create a new free account"}
             </DialogDescription>
           </DialogHeader>
-          
+
           <Tabs value={authMode} onValueChange={(val) => setAuthMode(val as "signin" | "signup")} className="w-full mt-4">
             <TabsList className="w-full bg-slate-100 p-1 rounded-xl mb-6">
               <TabsTrigger value="signin" className="flex-1 rounded-lg text-sm font-semibold">Sign In</TabsTrigger>
               <TabsTrigger value="signup" className="flex-1 rounded-lg text-sm font-semibold">Create Account</TabsTrigger>
             </TabsList>
-            
+
             <TabsContent value="signin" className="mt-0">
               <form onSubmit={handleSignIn} className="space-y-4">
                 <div className="space-y-1.5">
@@ -1598,7 +1611,7 @@ export default function AuthPage() {
                 </Button>
               </form>
             </TabsContent>
-            
+
             <TabsContent value="signup" className="mt-0">
               <form onSubmit={handleSignUp} className="space-y-4">
                 <div className="space-y-1.5">
