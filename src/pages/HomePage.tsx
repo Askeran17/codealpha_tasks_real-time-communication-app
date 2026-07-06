@@ -138,13 +138,18 @@ export default function HomePage({ user, onJoinRoom, onSignOut }: Props) {
   const getInitials = (name: string) =>
     name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2)
 
-  // Filter local database rooms by topbar query
-  const filteredUserRooms = rooms.filter(room =>
-    room.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (room.description && room.description.toLowerCase().includes(searchQuery.toLowerCase()))
-  )
+  // Matches the topbar search query against a name/description pair, so the
+  // same query filters rooms consistently no matter which tab is active.
+  const matchesSearch = (name: string, description?: string | null) => {
+    const q = searchQuery.trim().toLowerCase()
+    if (!q) return true
+    return name.toLowerCase().includes(q) || (description ? description.toLowerCase().includes(q) : false)
+  }
 
-  const pinnedRooms = rooms.filter(room => room.pinned)
+  // Filter local database rooms by topbar query
+  const filteredUserRooms = rooms.filter(room => matchesSearch(room.name, room.description))
+
+  const pinnedRooms = rooms.filter(room => room.pinned && matchesSearch(room.name, room.description))
   const cardThemes = [
     {
       cardBg: "from-[#FFF6F6] to-[#FFF1F1] dark:from-[#251B18] dark:to-[#1F1816]",
@@ -178,7 +183,7 @@ export default function HomePage({ user, onJoinRoom, onSignOut }: Props) {
   const scheduledCount = rooms.filter(r => scheduledRoomIds.has(r.id)).length
   const instantCount = rooms.length - scheduledCount
   const upcomingMeetings = meetings
-    .filter(m => new Date(m.scheduled_at) >= new Date())
+    .filter(m => new Date(m.scheduled_at) >= new Date() && matchesSearch(m.room_name, m.room_description))
     .sort((a, b) => new Date(a.scheduled_at).getTime() - new Date(b.scheduled_at).getTime())
   const [meetingDialogOpen, setMeetingDialogOpen] = useState(false)
   const [meetingDialogDate, setMeetingDialogDate] = useState<Date | null>(null)
@@ -502,7 +507,7 @@ export default function HomePage({ user, onJoinRoom, onSignOut }: Props) {
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-stone-400 dark:text-stone-500" />
               <input 
                 type="text"
-                placeholder="Search meetings, rooms or users..."
+                placeholder="Search rooms"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full pl-11 pr-4 py-3 bg-[#F4F4F4] dark:bg-[#262421] rounded-2xl text-[15px] border-none focus:outline-none focus:ring-1 focus:ring-[#FF6A2E]/50 text-stone-900 dark:text-white placeholder-stone-400 dark:placeholder-stone-500 transition-all"

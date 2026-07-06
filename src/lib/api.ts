@@ -265,6 +265,12 @@ export const api = {
     }
   },
 
+  async deleteFile(fileId: string): Promise<void> {
+    await apiRequest<void>(`files/${fileId}/`, {
+      method: "DELETE",
+    })
+  },
+
   async downloadFile(fileUrl: string): Promise<Blob> {
     const response = await fetch(fileUrl, {
       headers: {
@@ -407,4 +413,19 @@ export function connectRoomSocket(
   }
 
   return ws
+}
+
+/**
+ * Closes a room socket safely. Calling `.close()` while the handshake is
+ * still in flight (readyState CONNECTING) is what triggers the noisy
+ * "WebSocket is closed before the connection is established" console error
+ * — most often hit when an effect unmounts immediately after mounting
+ * (e.g. React StrictMode's double-invoke). Waiting for `open` avoids it.
+ */
+export function closeRoomSocket(ws: WebSocket) {
+  if (ws.readyState === WebSocket.CONNECTING) {
+    ws.addEventListener("open", () => ws.close())
+  } else {
+    ws.close()
+  }
 }

@@ -1,11 +1,11 @@
 import { useState, useEffect, useRef, useCallback } from "react"
-import { api, connectRoomSocket, type Message, type SharedFile, type AuthUser } from "@/lib/api"
+import { api, connectRoomSocket, closeRoomSocket, type Message, type SharedFile, type AuthUser } from "@/lib/api"
 import { deriveKey, encryptText, decryptText, encryptFile, decryptFile } from "@/lib/crypto"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { toast } from "sonner"
-import { 
-  Send, Paperclip, File, Download, Upload, Image, FileText, Film, Lock, 
+import {
+  Send, File, Download, Upload, Image, FileText, Film, Lock, Trash2,
   Plus, Smile, Shield, ChevronRight
 } from "lucide-react"
 import { cn, getAvatarColor } from "@/lib/utils"
@@ -15,6 +15,9 @@ type Props = {
   roomId: string
   user: AuthUser
   mode?: "chat" | "files"
+  // Called after a file finishes uploading — lets the parent switch to the
+  // Files tab so the result is actually visible instead of just a toast.
+  onFileShared?: () => void
 }
 
 const MAX_FILE_SIZE = 50 * 1024 * 1024 // 50MB
@@ -32,17 +35,24 @@ function formatBytes(bytes: number) {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
 }
 
-export default function ChatPanel({ roomId, user, mode = "chat" }: Props) {
+const EMOJI_OPTIONS = [
+  "😀", "😂", "😍", "😊", "🙌", "👍", "👏", "🎉",
+  "❤️", "🔥", "😢", "😮", "🤔", "🙏", "✅", "🚀",
+]
+
+export default function ChatPanel({ roomId, user, mode = "chat", onFileShared }: Props) {
   const [messages, setMessages] = useState<Message[]>([])
   const [files, setFiles] = useState<SharedFile[]>([])
   const [newMessage, setNewMessage] = useState("")
   const [sending, setSending] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [cryptoKey, setCryptoKey] = useState<CryptoKey | null>(null)
-  
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false)
+
   const scrollRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const socketRef = useRef<WebSocket | null>(null)
+  const emojiPickerRef = useRef<HTMLDivElement>(null)
   
   const displayName = user.user_metadata?.display_name || user.username || "User"
 
@@ -120,13 +130,29 @@ export default function ChatPanel({ roomId, user, mode = "chat" }: Props) {
     socketRef.current = ws
 
     return () => {
-      ws.close()
+      closeRoomSocket(ws)
     }
   }, [fetchMessages, fetchFiles, roomId, cryptoKey])
 
   useEffect(() => {
     setTimeout(scrollToBottom, 100)
   }, [messages, mode])
+
+  useEffect(() => {
+    if (!showEmojiPicker) return
+    const handleClickOutside = (e: MouseEvent) => {
+      if (emojiPickerRef.current && !emojiPickerRef.current.contains(e.target as Node)) {
+        setShowEmojiPicker(false)
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside)
+    return () => document.removeEventListener("mousedown", handleClickOutside)
+  }, [showEmojiPicker])
+
+  const insertEmoji = (emoji: string) => {
+    setNewMessage((prev) => prev + emoji)
+    setShowEmojiPicker(false)
+  }
 
   const sendMessage = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -192,6 +218,7 @@ export default function ChatPanel({ roomId, user, mode = "chat" }: Props) {
 
       toast.success(`${file.name} shared securely!`, { id: toastId })
       fetchFiles()
+      onFileShared?.()
     } catch (err) {
       console.error(err)
       toast.error("Failed to encrypt or upload file", { id: toastId })
@@ -222,13 +249,23 @@ export default function ChatPanel({ roomId, user, mode = "chat" }: Props) {
     }
   }
 
+  const deleteSharedFile = async (file: SharedFile) => {
+    try {
+      await api.deleteFile(file.id)
+      setFiles((prev) => prev.filter((f) => f.id !== file.id))
+      toast.success("File deleted")
+    } catch {
+      toast.error("Failed to delete file")
+    }
+  }
+
   const getInitials = (name: string) =>
     name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2)
 
 
   if (mode === "files") {
     return (
-      <div className="flex flex-col h-full bg-[#121214] select-none">
+      <div className="flex flex-col h-full overflow-hidden bg-[#121214] select-none">
         
         {/* End-to-end Encrypted Green Notice Banner */}
         <div className="mx-4 my-3 px-4 py-3 bg-[#15291E]/90 border border-[#1b3d2b] rounded-2xl flex items-center justify-between">
@@ -268,7 +305,7 @@ export default function ChatPanel({ roomId, user, mode = "chat" }: Props) {
         </div>
 
         {/* Scroll list of shared files */}
-        <ScrollArea className="flex-1 px-4 bg-[#121214]">
+        <ScrollArea className="flex-1 min-h-0 px-4 bg-[#121214]">
           <div className="space-y-2.5 pb-4">
             {files.length === 0 && (
               <div className="text-center text-stone-500 text-sm py-8 font-medium">
@@ -290,12 +327,24 @@ export default function ChatPanel({ roomId, user, mode = "chat" }: Props) {
                       </div>
                     </div>
                   </div>
-                  <button
-                    className="h-8.5 w-8.5 rounded-lg flex items-center justify-center text-stone-400 hover:text-white hover:bg-white/5 border-none cursor-pointer shrink-0"
-                    onClick={() => downloadFile(file)}
-                  >
-                    <Download className="w-4 h-4" />
-                  </button>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <button
+                      className="h-8.5 w-8.5 rounded-lg flex items-center justify-center text-stone-400 hover:text-white hover:bg-white/5 border-none cursor-pointer"
+                      onClick={() => downloadFile(file)}
+                      title="Download"
+                    >
+                      <Download className="w-4 h-4" />
+                    </button>
+                    {file.user_id === user.id && (
+                      <button
+                        className="h-8.5 w-8.5 rounded-lg flex items-center justify-center text-stone-400 hover:text-red-400 hover:bg-white/5 border-none cursor-pointer"
+                        onClick={() => deleteSharedFile(file)}
+                        title="Delete"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
                 </div>
               )
             })}
@@ -316,7 +365,7 @@ export default function ChatPanel({ roomId, user, mode = "chat" }: Props) {
 
   // DEFAULT MODE: "chat"
   return (
-    <div className="flex flex-col h-full bg-[#121214] select-none">
+    <div className="flex flex-col h-full overflow-hidden bg-[#121214] select-none">
       
       {/* End-to-end Encrypted Green Notice Banner */}
       <div 
@@ -336,7 +385,7 @@ export default function ChatPanel({ roomId, user, mode = "chat" }: Props) {
       </div>
 
       {/* Messages Scroll Panel */}
-      <ScrollArea className="flex-1 px-4">
+      <ScrollArea className="flex-1 min-h-0 px-4">
         <div ref={scrollRef} className="space-y-5.5 py-4">
           
 
@@ -377,7 +426,24 @@ export default function ChatPanel({ roomId, user, mode = "chat" }: Props) {
       </ScrollArea>
       
       {/* Typing field overlay */}
-      <div className="p-4 bg-[#121214] border-t border-white/5">
+      <div className="relative p-4 bg-[#121214] border-t border-white/5">
+        {showEmojiPicker && (
+          <div
+            ref={emojiPickerRef}
+            className="absolute bottom-full left-4 mb-2 grid grid-cols-8 gap-1 p-2 bg-[#1E1F24] border border-white/10 rounded-2xl shadow-lg z-10"
+          >
+            {EMOJI_OPTIONS.map((emoji) => (
+              <button
+                key={emoji}
+                type="button"
+                onClick={() => insertEmoji(emoji)}
+                className="w-8 h-8 flex items-center justify-center text-lg rounded-lg hover:bg-white/5 cursor-pointer"
+              >
+                {emoji}
+              </button>
+            ))}
+          </div>
+        )}
         <form onSubmit={sendMessage} className="bg-[#1E1F24] rounded-2xl p-2 border border-white/5">
           <input
             value={newMessage}
@@ -386,21 +452,27 @@ export default function ChatPanel({ roomId, user, mode = "chat" }: Props) {
             className="w-full bg-transparent text-[13.5px] border-none focus:outline-none text-white placeholder-stone-500 px-3.5 py-2"
             disabled={sending || !cryptoKey}
           />
-          
+
           <div className="flex items-center justify-between border-t border-white/5 pt-2 mt-2 px-1">
             <div className="flex items-center gap-1.5">
-              <button 
+              <button
                 type="button"
-                onClick={() => toast.info("More chat actions.")}
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploading || !cryptoKey}
+                title="Attach a file"
                 className="p-1.5 rounded-lg text-stone-400 hover:text-white hover:bg-white/5 transition-colors cursor-pointer"
               >
                 <Plus className="w-4.5 h-4.5" />
               </button>
 
-              <button 
+              <button
                 type="button"
-                onClick={() => toast.info("Emoji picker coming soon.")}
-                className="p-1.5 rounded-lg text-stone-400 hover:text-white hover:bg-white/5 transition-colors cursor-pointer"
+                onClick={() => setShowEmojiPicker((prev) => !prev)}
+                title="Insert emoji"
+                className={cn(
+                  "p-1.5 rounded-lg hover:text-white hover:bg-white/5 transition-colors cursor-pointer",
+                  showEmojiPicker ? "text-white bg-white/5" : "text-stone-400"
+                )}
               >
                 <Smile className="w-4.5 h-4.5" />
               </button>
@@ -411,14 +483,6 @@ export default function ChatPanel({ roomId, user, mode = "chat" }: Props) {
                 className="hidden"
                 onChange={uploadFile}
               />
-              <button 
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={uploading || !cryptoKey}
-                className="p-1.5 rounded-lg text-stone-400 hover:text-white hover:bg-white/5 transition-colors cursor-pointer"
-              >
-                <Paperclip className="w-4.5 h-4.5" />
-              </button>
             </div>
 
             <button 

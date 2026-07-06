@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react"
-import { api, type AuthUser } from "@/lib/api"
+import { api, type AuthUser, type Room } from "@/lib/api"
 import { toast } from "sonner"
 import { useWebRTC } from "@/hooks/use-webrtc"
 import { useCallRecorder } from "@/hooks/use-call-recorder"
@@ -49,6 +49,7 @@ type Panel = "chat" | "files" | "people" | "whiteboard" | null
 
 export default function RoomPage({ roomId, user, onLeave }: Props) {
   const [activePanel, setActivePanel] = useState<Panel>("chat")
+  const [room, setRoom] = useState<Room | null>(null)
   const [seconds, setSeconds] = useState(0) // Starting meeting timer from zero
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [pinnedPeerId, setPinnedPeerId] = useState<string | null>(null)
@@ -158,7 +159,9 @@ export default function RoomPage({ roomId, user, onLeave }: Props) {
   // Verify room exists on load
   useEffect(() => {
     let cancelled = false
-    api.getRoom(roomId).catch(() => {
+    api.getRoom(roomId).then((data) => {
+      if (!cancelled) setRoom(data)
+    }).catch(() => {
       if (!cancelled) {
         toast.error("Room not found — it may have been deleted")
         onLeave()
@@ -204,7 +207,7 @@ export default function RoomPage({ roomId, user, onLeave }: Props) {
         {/* Topbar Header */}
         <header className="bg-[#111214]/65 backdrop-blur-md px-3 sm:px-6 h-16 sm:h-20 shrink-0 border-b border-white/5 flex items-center justify-between z-20">
           <div className="flex items-center gap-1.5 sm:gap-3 min-w-0">
-            <h2 className="text-sm sm:text-lg font-bold truncate max-w-[120px] xs:max-w-[150px] sm:max-w-none">Team Sync Meeting</h2>
+            <h2 className="text-sm sm:text-lg font-bold truncate max-w-[120px] xs:max-w-[150px] sm:max-w-none">{room?.name || "Meeting Room"}</h2>
 
             {/* LIVE indicator */}
             <span className="flex items-center gap-1 text-[10px] sm:text-xs font-bold bg-red-600/10 text-red-500 border border-red-600/20 px-1.5 py-0.5 rounded-lg shrink-0">
@@ -521,7 +524,7 @@ export default function RoomPage({ roomId, user, onLeave }: Props) {
               {/* Panel Content Body */}
               <div className="flex-1 flex flex-col overflow-hidden">
                 {activePanel === "chat" ? (
-                  <ChatPanel roomId={roomId} user={user} mode="chat" />
+                  <ChatPanel roomId={roomId} user={user} mode="chat" onFileShared={() => setActivePanel("files")} />
                 ) : activePanel === "files" ? (
                   <ChatPanel roomId={roomId} user={user} mode="files" />
                 ) : activePanel === "people" ? (

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from "react"
-import { connectRoomSocket, type AuthUser } from "@/lib/api"
+import { connectRoomSocket, closeRoomSocket, type AuthUser } from "@/lib/api"
 import { toast } from "sonner"
 
 const ICE_SERVERS = {
@@ -277,15 +277,17 @@ export function useWebRTC(roomId: string, user: AuthUser) {
       cleanedUp = true
       
       // Announce leave and close
-      if (ws && ws.readyState === WebSocket.OPEN) {
-        ws.send(JSON.stringify({
-          type: "leave",
-          room_id: roomId,
-          from_user: user.id,
-          to_user: null,
-          payload: {}
-        }))
-        ws.close()
+      if (ws) {
+        if (ws.readyState === WebSocket.OPEN) {
+          ws.send(JSON.stringify({
+            type: "leave",
+            room_id: roomId,
+            from_user: user.id,
+            to_user: null,
+            payload: {}
+          }))
+        }
+        closeRoomSocket(ws)
       }
 
       // Close all peer connections

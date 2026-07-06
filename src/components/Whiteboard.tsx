@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from "react"
-import { connectRoomSocket, type AuthUser } from "@/lib/api"
+import { connectRoomSocket, closeRoomSocket, type AuthUser } from "@/lib/api"
 import { Button } from "@/components/ui/button"
 import { Slider } from "@/components/ui/slider"
 import { Separator } from "@/components/ui/separator"
@@ -88,7 +88,7 @@ export default function Whiteboard({ roomId, user }: Props) {
     socketRef.current = ws
 
     return () => {
-      ws.close()
+      closeRoomSocket(ws)
     }
   }, [roomId, user.id, handleRemoteEvent])
 

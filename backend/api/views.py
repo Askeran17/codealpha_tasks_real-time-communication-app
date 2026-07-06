@@ -237,6 +237,17 @@ class RoomFilesView(APIView):
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
+class SharedFileDetailView(generics.DestroyAPIView):
+    queryset = SharedFile.objects.all()
+    serializer_class = SharedFileSerializer
+    permission_classes = [IsAuthenticated]
+
+    def perform_destroy(self, instance):
+        if instance.user_id != self.request.user.id:
+            raise PermissionDenied("Only the uploader can delete this file.")
+        instance.delete()
+
+
 class RoomRecordingsView(APIView):
     permission_classes = [IsAuthenticated]
 
