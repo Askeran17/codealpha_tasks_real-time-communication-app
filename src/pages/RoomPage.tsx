@@ -35,8 +35,11 @@ import {
   MoreHorizontal,
   MoreVertical,
   Hand,
-  Pencil
+  Pencil,
+  Sun,
+  Moon
 } from "lucide-react"
+import { useTheme } from "@/components/theme-provider"
 import { cn } from "@/lib/utils"
 
 type Props = {
@@ -48,6 +51,7 @@ type Props = {
 type Panel = "chat" | "files" | "people" | "whiteboard" | null
 
 export default function RoomPage({ roomId, user, onLeave }: Props) {
+  const { theme, setTheme } = useTheme()
   const [activePanel, setActivePanel] = useState<Panel>("chat")
   const [room, setRoom] = useState<Room | null>(null)
   const [seconds, setSeconds] = useState(0) // Starting meeting timer from zero
@@ -243,6 +247,15 @@ export default function RoomPage({ roomId, user, onLeave }: Props) {
               <Users className="w-4 h-4 sm:w-4.5 sm:h-4.5 text-stone-400" />
               <span>{1 + peersArray.length}</span>
             </div>
+
+            {/* Theme toggle */}
+            <button
+              onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+              className="p-2 rounded-xl text-stone-300 hover:bg-white/5 cursor-pointer transition-colors"
+              title="Toggle theme"
+            >
+              {theme === "dark" ? <Moon className="w-4.5 h-4.5" /> : <Sun className="w-4.5 h-4.5 text-amber-400" />}
+            </button>
 
             <div className="w-[1px] h-5 bg-white/10" />
 
