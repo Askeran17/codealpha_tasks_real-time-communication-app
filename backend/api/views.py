@@ -2,10 +2,13 @@ from rest_framework import status, generics
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
-from rest_framework.exceptions import PermissionDenied
+from rest_framework.exceptions import PermissionDenied, AuthenticationFailed
+from rest_framework.authentication import TokenAuthentication
 from django.contrib.auth import authenticate
 from django.contrib.auth.models import User
 from django.db.models import Q
+from django.http import HttpResponseForbidden
+from django.views.static import serve as serve_static
 from rest_framework.authtoken.models import Token
 from .models import Room, RoomParticipant, Message, SharedFile, Recording, ScheduledMeeting
 from .serializers import (
@@ -355,3 +358,19 @@ class RecordingDetailView(generics.DestroyAPIView):
         if instance.created_by_id != self.request.user.id:
             raise PermissionDenied("Only the recording owner can delete this recording.")
         instance.delete()
+
+
+def serve_protected_media(request, path, document_root=None):
+    """Gate MEDIA_ROOT (shared files, recordings) behind the same token auth
+    every other endpoint requires. django.views.static.serve has no concept
+    of authentication on its own — wiring it up directly would make every
+    upload world-readable to anyone with the URL, no token needed, which
+    doesn't match the rest of the app's access model (any authenticated
+    user, mirroring the "join by ID/link" behavior on RoomDetailView)."""
+    try:
+        auth_result = TokenAuthentication().authenticate(request)
+    except AuthenticationFailed:
+        auth_result = None
+    if auth_result is None:
+        return HttpResponseForbidden("Authentication required")
+    return serve_static(request, path, document_root=document_root)
