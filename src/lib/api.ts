@@ -207,6 +207,20 @@ export const api = {
     })
   },
 
+  // Whiteboard persistence — a full-canvas raster snapshot, not a stroke
+  // log, so late joiners see prior drawing instead of a blank board.
+  async getWhiteboardSnapshot(roomId: string): Promise<string | null> {
+    const data = await apiRequest<{ snapshot: string | null }>(`rooms/${roomId}/whiteboard/`)
+    return data.snapshot
+  },
+
+  async saveWhiteboardSnapshot(roomId: string, snapshot: string | null): Promise<void> {
+    await apiRequest<void>(`rooms/${roomId}/whiteboard/`, {
+      method: "PUT",
+      body: JSON.stringify({ snapshot }),
+    })
+  },
+
   // Messages / Chat history
   async getRoomMessages(roomId: string): Promise<Message[]> {
     const djangoMsgs = await apiRequest<any[]>(`rooms/${roomId}/messages/`)

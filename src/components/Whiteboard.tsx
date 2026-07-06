@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from "react"
-import { connectRoomSocket, closeRoomSocket, type AuthUser } from "@/lib/api"
+import { api, connectRoomSocket, closeRoomSocket, type AuthUser } from "@/lib/api"
 import { Button } from "@/components/ui/button"
 import { Slider } from "@/components/ui/slider"
 import { Separator } from "@/components/ui/separator"
@@ -72,26 +72,10 @@ export default function Whiteboard({ roomId, user }: Props) {
     }
   }, [drawLine])
 
-  useEffect(() => {
-    // Connect WebSocket channel for whiteboard drawings
-    const ws = connectRoomSocket(
-      roomId,
-      (msg) => {
-        if (msg.type === "draw") {
-          const payload = msg.payload
-          if (payload && payload.userId !== user.id) {
-            handleRemoteEvent(payload as DrawEvent)
-          }
-        }
-      }
-    )
-    socketRef.current = ws
-
-    return () => {
-      closeRoomSocket(ws)
-    }
-  }, [roomId, user.id, handleRemoteEvent])
-
+  // Sizes the canvas to its container. Runs before the snapshot-load effect
+  // below (declared first, so it commits first) — the canvas needs its
+  // real dimensions before an old snapshot is drawn into it, since resizing
+  // a <canvas> (setting .width/.height) clears whatever was just painted.
   useEffect(() => {
     const resize = () => {
       const canvas = canvasRef.current
@@ -107,6 +91,58 @@ export default function Whiteboard({ roomId, user }: Props) {
     window.addEventListener("resize", resize)
     return () => window.removeEventListener("resize", resize)
   }, [])
+
+  useEffect(() => {
+    let cancelled = false
+    let ws: WebSocket | null = null
+
+    const init = async () => {
+      // Load whatever was last drawn before wiring up the live socket —
+      // otherwise a slow-loading snapshot could paint over strokes that
+      // arrive live in the meantime.
+      try {
+        const snapshot = await api.getWhiteboardSnapshot(roomId)
+        const canvas = canvasRef.current
+        const ctx = getCtx()
+        if (!cancelled && snapshot && canvas && ctx) {
+          await new Promise<void>((resolve) => {
+            const img = new Image()
+            img.onload = () => {
+              ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
+              resolve()
+            }
+            img.onerror = () => resolve()
+            img.src = snapshot
+          })
+        }
+      } catch {
+        // Best-effort — missing/failed snapshot just starts from a blank board.
+      }
+
+      if (cancelled) return
+
+      // Connect WebSocket channel for whiteboard drawings
+      ws = connectRoomSocket(
+        roomId,
+        (msg) => {
+          if (msg.type === "draw") {
+            const payload = msg.payload
+            if (payload && payload.userId !== user.id) {
+              handleRemoteEvent(payload as DrawEvent)
+            }
+          }
+        }
+      )
+      socketRef.current = ws
+    }
+
+    init()
+
+    return () => {
+      cancelled = true
+      if (ws) closeRoomSocket(ws)
+    }
+  }, [roomId, user.id, handleRemoteEvent])
 
   const getPos = (e: React.MouseEvent | React.TouchEvent) => {
     const canvas = canvasRef.current!
@@ -156,14 +192,27 @@ export default function Whiteboard({ roomId, user }: Props) {
     lastPos.current = pos
   }
 
-  const onPointerUp = () => { isDrawing.current = false }
+  // Persists the current canvas so the next person who opens the whiteboard
+  // (or the same person reopening it — the panel unmounts when you switch
+  // tabs, taking the canvas with it) sees this instead of a blank board.
+  const persistSnapshot = (dataUrl: string | null) => {
+    api.saveWhiteboardSnapshot(roomId, dataUrl).catch(() => {})
+  }
+
+  const onPointerUp = () => {
+    if (!isDrawing.current) return
+    isDrawing.current = false
+    const canvas = canvasRef.current
+    if (canvas) persistSnapshot(canvas.toDataURL("image/png"))
+  }
 
   const clearCanvas = () => {
     const canvas = canvasRef.current
     if (!canvas) return
     const ctx = getCtx()
     if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height)
-    
+    persistSnapshot(null)
+
     if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
       socketRef.current.send(
         JSON.stringify({

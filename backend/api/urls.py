@@ -11,6 +11,7 @@ urlpatterns = [
     path('rooms/<uuid:pk>/', views.RoomDetailView.as_view(), name='room-detail'),
     path('rooms/<uuid:room_id>/messages/', views.RoomMessagesListView.as_view(), name='room-messages'),
     path('rooms/<uuid:room_id>/files/', views.RoomFilesView.as_view(), name='room-files'),
+    path('rooms/<uuid:room_id>/whiteboard/', views.RoomWhiteboardView.as_view(), name='room-whiteboard'),
     path('files/<uuid:pk>/', views.SharedFileDetailView.as_view(), name='shared-file-detail'),
     path('rooms/<uuid:room_id>/recordings/', views.RoomRecordingsView.as_view(), name='room-recordings'),
 

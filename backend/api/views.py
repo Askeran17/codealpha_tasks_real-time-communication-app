@@ -186,6 +186,32 @@ class RoomDetailView(generics.RetrieveUpdateDestroyAPIView):
         instance.delete()
 
 
+class RoomWhiteboardView(APIView):
+    """Persists the whiteboard as a single raster snapshot (not a stroke
+    log — the "draw" websocket messages are tiny per-segment events sent on
+    every pointer move, far too many to store individually). Any
+    authenticated participant may read or overwrite it, same as joining a
+    room by ID: the whiteboard is shared/collaborative, not owner-restricted.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, room_id):
+        try:
+            room = Room.objects.get(id=room_id, is_active=True)
+        except Room.DoesNotExist:
+            return Response({'error': 'Room not found'}, status=status.HTTP_404_NOT_FOUND)
+        return Response({'snapshot': room.whiteboard_snapshot})
+
+    def put(self, request, room_id):
+        try:
+            room = Room.objects.get(id=room_id, is_active=True)
+        except Room.DoesNotExist:
+            return Response({'error': 'Room not found'}, status=status.HTTP_404_NOT_FOUND)
+        room.whiteboard_snapshot = request.data.get('snapshot') or None
+        room.save(update_fields=['whiteboard_snapshot'])
+        return Response({'snapshot': room.whiteboard_snapshot})
+
+
 class RoomMessagesListView(generics.ListAPIView):
     serializer_class = MessageSerializer
     permission_classes = [IsAuthenticated]

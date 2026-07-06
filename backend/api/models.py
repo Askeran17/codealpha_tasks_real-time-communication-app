@@ -10,6 +10,11 @@ class Room(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     is_active = models.BooleanField(default=True)
     pinned = models.BooleanField(default=False)
+    # Last-known whiteboard raster (base64 data URL), so a participant who
+    # opens the whiteboard after strokes were already drawn sees them instead
+    # of a blank canvas — live "draw" events are only relayed over the
+    # websocket to whoever is connected at that moment, nothing persists them.
+    whiteboard_snapshot = models.TextField(blank=True, null=True)
 
     def __str__(self):
         return self.name
