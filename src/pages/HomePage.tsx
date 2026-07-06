@@ -984,32 +984,32 @@ export default function HomePage({ user, onJoinRoom, onSignOut }: Props) {
                 </Dialog>
 
                 {/* Calendar Layout */}
-                <div className="bg-white dark:bg-[#1D1B19] border border-[#E5DED5]/40 dark:border-[#2E2B27] rounded-3xl p-6 shadow-sm">
+                <div className="bg-white dark:bg-[#1D1B19] border border-[#E5DED5]/40 dark:border-[#2E2B27] rounded-2xl sm:rounded-3xl p-3 sm:p-6 shadow-sm">
                   {/* Calendar Month Header */}
-                  <div className="flex items-center justify-between mb-6">
-                    <h3 className="text-xl font-bold text-stone-900 dark:text-white">{monthLabel}</h3>
+                  <div className="flex items-center justify-between mb-4 sm:mb-6">
+                    <h3 className="text-lg sm:text-xl font-bold text-stone-900 dark:text-white">{monthLabel}</h3>
                     <div className="flex gap-2">
-                      <button onClick={goToPrevMonth} className="p-2 border border-stone-200 dark:border-[#2E2B27] hover:bg-stone-50 dark:hover:bg-stone-900 rounded-xl cursor-pointer">
-                        <ChevronRight className="w-4 h-4 rotate-180" />
+                      <button onClick={goToPrevMonth} className="p-1.5 sm:p-2 border border-stone-200 dark:border-[#2E2B27] hover:bg-stone-50 dark:hover:bg-stone-900 rounded-xl cursor-pointer">
+                        <ChevronRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 rotate-180" />
                       </button>
-                      <button onClick={goToNextMonth} className="p-2 border border-stone-200 dark:border-[#2E2B27] hover:bg-stone-50 dark:hover:bg-stone-900 rounded-xl cursor-pointer">
-                        <ChevronRight className="w-4 h-4" />
+                      <button onClick={goToNextMonth} className="p-1.5 sm:p-2 border border-stone-200 dark:border-[#2E2B27] hover:bg-stone-50 dark:hover:bg-stone-900 rounded-xl cursor-pointer">
+                        <ChevronRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                       </button>
                     </div>
                   </div>
 
                   {/* Calendar Grid */}
-                  <div className="grid grid-cols-7 gap-2 text-center font-bold text-xs text-stone-400 dark:text-stone-500 uppercase tracking-wider mb-2">
+                  <div className="grid grid-cols-7 gap-1 sm:gap-2 text-center font-bold text-[10px] sm:text-xs text-stone-400 dark:text-stone-500 uppercase tracking-wider mb-2">
                     <div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div>
                   </div>
 
-                  <div className="grid grid-cols-7 gap-2">
+                  <div className="grid grid-cols-7 gap-1 sm:gap-2">
                     {/* Leading days from the previous month */}
                     {Array.from({ length: firstWeekday }).map((_, idx) => {
                       const prevMonthLastDay = new Date(currentYear, currentMonth, 0).getDate()
                       const dayNum = prevMonthLastDay - firstWeekday + idx + 1
                       return (
-                        <div key={`prev-${idx}`} className="h-28 bg-[#FAFAFA]/50 dark:bg-stone-900/10 rounded-xl border border-[#E5DED5]/20 dark:border-[#2E2B27]/20 p-2 text-stone-300">{dayNum}</div>
+                        <div key={`prev-${idx}`} className="h-14 sm:h-28 bg-[#FAFAFA]/50 dark:bg-stone-900/10 rounded-xl border border-[#E5DED5]/20 dark:border-[#2E2B27]/20 p-1 sm:p-2 text-stone-300 text-xs sm:text-sm font-bold">{dayNum}</div>
                       )
                     })}
 
@@ -1023,35 +1023,51 @@ export default function HomePage({ user, onJoinRoom, onSignOut }: Props) {
                           key={dayNum}
                           onClick={() => openNewMeetingDialog(new Date(currentYear, currentMonth, dayNum))}
                           className={cn(
-                            "h-28 bg-[#FAFAFA] dark:bg-[#141312] border border-[#E5DED5]/40 dark:border-[#2E2B27]/60 rounded-xl p-2 cursor-pointer transition-colors hover:bg-stone-50 dark:hover:bg-stone-900/40 relative flex flex-col justify-between overflow-hidden",
+                            "h-14 sm:h-28 bg-[#FAFAFA] dark:bg-[#141312] border border-[#E5DED5]/40 dark:border-[#2E2B27]/60 rounded-xl p-1 sm:p-2 cursor-pointer transition-colors hover:bg-stone-50 dark:hover:bg-stone-900/40 relative flex flex-col justify-between overflow-hidden",
                             isToday && "ring-2 ring-[#FF6A2E]"
                           )}
                         >
-                          <span className={cn("text-sm font-bold", isToday ? "text-[#FF6A2E] dark:text-[#F37338]" : "text-stone-850 dark:text-stone-350")}>{dayNum}</span>
+                          <span className={cn("text-xs sm:text-sm font-bold", isToday ? "text-[#FF6A2E] dark:text-[#F37338]" : "text-stone-850 dark:text-stone-350")}>{dayNum}</span>
 
                           {dayMeetings.length > 0 && (
-                            <div className="space-y-1 mt-1.5">
-                              {dayMeetings.slice(0, 3).map((meeting) => {
-                                const color = meetingColors[hashToIndex(meeting.id, meetingColors.length)]
-                                const time = new Date(meeting.scheduled_at).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false })
-                                return (
-                                  <div
-                                    key={meeting.id}
-                                    onClick={(e) => { e.stopPropagation(); onJoinRoom(meeting.room_id) }}
-                                    className={cn("group/chip flex items-center justify-between gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded truncate leading-tight", color.bg, color.text)}
-                                  >
-                                    <span className="truncate">{time} {meeting.room_name}</span>
-                                    <button
-                                      onClick={(e) => { e.stopPropagation(); cancelMeeting(meeting.id) }}
-                                      className="hidden group-hover/chip:inline-flex shrink-0 hover:opacity-70"
-                                      title="Cancel meeting"
+                            <>
+                              {/* Desktop meetings list */}
+                              <div className="hidden sm:block space-y-1 mt-1.5">
+                                {dayMeetings.slice(0, 3).map((meeting) => {
+                                  const color = meetingColors[hashToIndex(meeting.id, meetingColors.length)]
+                                  const time = new Date(meeting.scheduled_at).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false })
+                                  return (
+                                    <div
+                                      key={meeting.id}
+                                      onClick={(e) => { e.stopPropagation(); onJoinRoom(meeting.room_id) }}
+                                      className={cn("group/chip flex items-center justify-between gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded truncate leading-tight", color.bg, color.text)}
                                     >
-                                      <X className="w-2.5 h-2.5" />
-                                    </button>
-                                  </div>
-                                )
-                              })}
-                            </div>
+                                      <span className="truncate">{time} {meeting.room_name}</span>
+                                      <button
+                                        onClick={(e) => { e.stopPropagation(); cancelMeeting(meeting.id) }}
+                                        className="hidden group-hover/chip:inline-flex shrink-0 hover:opacity-70"
+                                        title="Cancel meeting"
+                                      >
+                                        <X className="w-2.5 h-2.5" />
+                                      </button>
+                                    </div>
+                                  )
+                                })}
+                              </div>
+
+                              {/* Mobile meetings indicator dots */}
+                              <div className="flex sm:hidden justify-center gap-0.5 mt-0.5">
+                                {dayMeetings.slice(0, 3).map((meeting) => {
+                                  const color = meetingColors[hashToIndex(meeting.id, meetingColors.length)]
+                                  return (
+                                    <span
+                                      key={meeting.id}
+                                      className={cn("w-1.5 h-1.5 rounded-full shrink-0 bg-current", color.text)}
+                                    />
+                                  )
+                                })}
+                              </div>
+                            </>
                           )}
                         </div>
                       )
@@ -1059,7 +1075,7 @@ export default function HomePage({ user, onJoinRoom, onSignOut }: Props) {
 
                     {/* Trailing days from the next month */}
                     {Array.from({ length: (7 - (firstWeekday + daysInMonth) % 7) % 7 }).map((_, idx) => (
-                      <div key={`next-${idx}`} className="h-28 bg-[#FAFAFA]/50 dark:bg-stone-900/10 rounded-xl border border-[#E5DED5]/20 dark:border-[#2E2B27]/20 p-2 text-stone-300">{idx + 1}</div>
+                      <div key={`next-${idx}`} className="h-14 sm:h-28 bg-[#FAFAFA]/50 dark:bg-stone-900/10 rounded-xl border border-[#E5DED5]/20 dark:border-[#2E2B27]/20 p-1 sm:p-2 text-stone-300 text-xs sm:text-sm font-bold">{idx + 1}</div>
                     ))}
                   </div>
 

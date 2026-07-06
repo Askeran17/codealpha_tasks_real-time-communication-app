@@ -192,7 +192,7 @@ export default function RoomPage({ roomId, user, onLeave }: Props) {
 
 
   return (
-    <div 
+    <div
       className="flex bg-[#0B0C0E] overflow-hidden text-white w-full select-none"
       style={{ height: "var(--room-vh, 100dvh)", fontFamily: '"Plus Jakarta Sans", sans-serif' }}
     >
@@ -200,43 +200,44 @@ export default function RoomPage({ roomId, user, onLeave }: Props) {
 
       {/* Main Calling Column */}
       <div className="flex-1 flex flex-col min-w-0 h-full">
-        
+
         {/* Topbar Header */}
-        <header className="bg-[#111214]/65 backdrop-blur-md px-6 h-20 shrink-0 border-b border-white/5 flex items-center justify-between z-20">
-          <div className="flex items-center gap-3">
-            <h2 className="text-lg font-bold">Team Sync Meeting</h2>
-            
+        <header className="bg-[#111214]/65 backdrop-blur-md px-3 sm:px-6 h-16 sm:h-20 shrink-0 border-b border-white/5 flex items-center justify-between z-20">
+          <div className="flex items-center gap-1.5 sm:gap-3 min-w-0">
+            <h2 className="text-sm sm:text-lg font-bold truncate max-w-[120px] xs:max-w-[150px] sm:max-w-none">Team Sync Meeting</h2>
+
             {/* LIVE indicator */}
-            <span className="flex items-center gap-1.5 text-xs font-bold bg-red-600/10 text-red-500 border border-red-600/20 px-2 py-0.5 rounded-lg ml-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
-              LIVE
+            <span className="flex items-center gap-1 text-[10px] sm:text-xs font-bold bg-red-600/10 text-red-500 border border-red-600/20 px-1.5 py-0.5 rounded-lg shrink-0">
+              <span className="w-1 h-1 sm:w-1.5 sm:h-1.5 rounded-full bg-red-500 animate-pulse" />
+              <span className="hidden xs:inline">LIVE</span>
             </span>
 
             {/* SECURE E2EE indicator */}
-            <span className="flex items-center gap-1.5 text-xs font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2.5 py-0.5 rounded-lg ml-1.5">
-              <Shield className="w-3.5 h-3.5 text-emerald-400" />
-              SECURE
+            <span className="flex items-center gap-1 text-[10px] sm:text-xs font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-1.5 py-0.5 rounded-lg shrink-0">
+              <Shield className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-emerald-400" />
+              <span className="hidden xs:inline">SECURE</span>
             </span>
 
             {/* Duration display */}
-            <span className="text-sm font-semibold text-stone-400 font-mono ml-2 tracking-wider">
+            <span className="text-xs sm:text-sm font-semibold text-stone-400 font-mono tracking-wider shrink-0">
               {formatDuration()}
             </span>
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 sm:gap-4">
             {/* Dark Invite Pill */}
-            <button 
+            <button
               onClick={handleCopyInviteLink}
-              className="flex items-center gap-2 py-2 px-4 rounded-full bg-white/5 hover:bg-white/10 border border-white/5 text-stone-300 text-sm font-semibold transition-colors cursor-pointer"
+              className="flex items-center gap-2 p-2 sm:py-2 sm:px-4 rounded-full bg-white/5 hover:bg-white/10 border border-white/5 text-stone-300 text-sm font-semibold transition-colors cursor-pointer"
+              title="Copy invite link"
             >
               <Link2 className="w-4 h-4" />
-              Invite
+              <span className="hidden sm:inline">Invite</span>
             </button>
 
             {/* Participants counter */}
-            <div className="flex items-center gap-1.5 text-sm font-bold text-stone-300">
-              <Users className="w-4.5 h-4.5 text-stone-400" />
+            <div className="flex items-center gap-1 text-sm font-bold text-stone-300">
+              <Users className="w-4 h-4 sm:w-4.5 sm:h-4.5 text-stone-400" />
               <span>{1 + peersArray.length}</span>
             </div>
 
@@ -257,8 +258,8 @@ export default function RoomPage({ roomId, user, onLeave }: Props) {
             </DropdownMenu>
 
             {/* Profile pic with status ring */}
-            <div className="relative">
-              <Avatar className="w-[36px] h-[36px] border border-white/10">
+            <div className="relative shrink-0">
+              <Avatar className="w-[30px] h-[30px] sm:w-[36px] sm:h-[36px] border border-white/10">
                 <AvatarImage src={localStorage.getItem(`user-avatar-${user.id}`) || user.user_metadata?.avatar_url || ""} className="object-cover object-[center_35%]" />
                 <AvatarFallback className="bg-[#FF6A2E] text-white text-xs font-bold">
                   {getInitials(user.user_metadata?.display_name || user.username)}
@@ -271,14 +272,14 @@ export default function RoomPage({ roomId, user, onLeave }: Props) {
         </header>
 
         {/* Main interactive area split into central display and right drawer panels */}
-        <div className="flex-1 flex overflow-hidden p-6 gap-6">
-          
+        <div className="flex-1 flex overflow-hidden p-3 sm:p-6 gap-3 sm:gap-6 relative">
+
           {/* Main workspace layout: center display + bottom participant grid */}
-          <div className="flex-1 flex flex-col gap-6 overflow-hidden">
-            
+          <div className="flex-1 flex flex-col gap-3 sm:gap-6 overflow-hidden">
+
             {/* Massive central active speaker display box */}
             <div className="flex-1 relative rounded-3xl overflow-hidden bg-gradient-to-br from-[#1A1B20] via-[#2F1F17] to-[#131416] border border-white/5 bg-clip-padding flex flex-col items-center justify-center">
-              
+
               {/* Custom wavy lines decoration overlay (SVG) */}
               <svg className="absolute inset-0 w-full h-full opacity-15 pointer-events-none" viewBox="0 0 800 500" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M-100 350C100 250 200 450 400 350C600 250 700 450 900 350" stroke="#FF6A2E" strokeWidth="3" />
@@ -310,7 +311,7 @@ export default function RoomPage({ roomId, user, onLeave }: Props) {
               </div>
 
               {/* Top right Tag: Maximize toggle */}
-              <button 
+              <button
                 onClick={() => toast.info("Cinematic fullscreen mode.")}
                 className="absolute top-4 right-4 p-2 rounded-full bg-[#111214]/80 backdrop-blur-md border border-white/5 hover:bg-white/10 text-stone-300 transition-colors cursor-pointer"
               >
@@ -331,18 +332,18 @@ export default function RoomPage({ roomId, user, onLeave }: Props) {
               ) : (
                 <div className="flex flex-col items-center z-10">
                   {(localStorage.getItem(`user-avatar-${user.id}`) || user.user_metadata?.avatar_url) ? (
-                    <img 
-                      src={localStorage.getItem(`user-avatar-${user.id}`) || user.user_metadata?.avatar_url} 
-                      alt={displayName} 
-                      className="w-24 h-24 rounded-full object-cover object-[center_35%] border border-white/10 shadow-lg shadow-black/35 mb-4" 
+                    <img
+                      src={localStorage.getItem(`user-avatar-${user.id}`) || user.user_metadata?.avatar_url}
+                      alt={displayName}
+                      className="w-16 h-16 sm:w-24 sm:h-24 rounded-full object-cover object-[center_35%] border border-white/10 shadow-lg shadow-black/35 mb-2 sm:mb-4"
                     />
                   ) : (
-                    <div className="w-24 h-24 rounded-full bg-gradient-to-br from-[#FF2E63] to-[#FF6A2E] flex items-center justify-center text-white text-3xl font-extrabold shadow-lg shadow-red-500/20 mb-4 select-none">
+                    <div className="w-16 h-16 sm:w-24 sm:h-24 rounded-full bg-gradient-to-br from-[#FF2E63] to-[#FF6A2E] flex items-center justify-center text-white text-xl sm:text-3xl font-extrabold shadow-lg shadow-red-500/20 mb-2 sm:mb-4 select-none">
                       {getInitials(displayName)}
                     </div>
                   )}
-                  <h3 className="text-2xl font-bold text-white tracking-tight">{displayName}</h3>
-                  <span className="text-xs font-bold text-stone-400 bg-white/5 py-1 px-3.5 rounded-full mt-2 select-none">
+                  <h3 className="text-lg sm:text-2xl font-bold text-white tracking-tight">{displayName}</h3>
+                  <span className="text-[10px] sm:text-xs font-bold text-stone-400 bg-white/5 py-0.5 px-2 sm:py-1 sm:px-3.5 rounded-full mt-1 sm:mt-2 select-none">
                     Host (You)
                   </span>
                 </div>
@@ -350,41 +351,41 @@ export default function RoomPage({ roomId, user, onLeave }: Props) {
 
               {/* Bottom right overlay: Green/orange/pink audio level indicator bars connected to real-time voice volume */}
               <div className="absolute bottom-4 right-4 flex items-end gap-1 h-8 px-3.5 bg-[#111214]/80 rounded-full border border-white/5 items-center justify-center z-10">
-                <div 
-                  className="w-1 bg-emerald-500 rounded-full transition-all duration-75" 
-                  style={{ height: `${Math.max(4, Math.min(16, 4 + audioLevel * 16))}px` }} 
+                <div
+                  className="w-1 bg-emerald-500 rounded-full transition-all duration-75"
+                  style={{ height: `${Math.max(4, Math.min(16, 4 + audioLevel * 16))}px` }}
                 />
-                <div 
-                  className="w-1 bg-emerald-500 rounded-full transition-all duration-75" 
-                  style={{ height: `${Math.max(4, Math.min(24, 4 + audioLevel * 24))}px` }} 
+                <div
+                  className="w-1 bg-emerald-500 rounded-full transition-all duration-75"
+                  style={{ height: `${Math.max(4, Math.min(24, 4 + audioLevel * 24))}px` }}
                 />
-                <div 
-                  className="w-1 bg-emerald-500 rounded-full transition-all duration-75" 
-                  style={{ height: `${Math.max(4, Math.min(20, 4 + audioLevel * 20))}px` }} 
+                <div
+                  className="w-1 bg-emerald-500 rounded-full transition-all duration-75"
+                  style={{ height: `${Math.max(4, Math.min(20, 4 + audioLevel * 20))}px` }}
                 />
-                <div 
-                  className="w-1 bg-[#FF6A2E] rounded-full transition-all duration-75" 
-                  style={{ height: `${Math.max(4, Math.min(28, 4 + audioLevel * 28))}px` }} 
+                <div
+                  className="w-1 bg-[#FF6A2E] rounded-full transition-all duration-75"
+                  style={{ height: `${Math.max(4, Math.min(28, 4 + audioLevel * 28))}px` }}
                 />
-                <div 
-                  className="w-1 bg-[#FF2E63] rounded-full transition-all duration-75" 
-                  style={{ height: `${Math.max(4, Math.min(12, 4 + audioLevel * 12))}px` }} 
+                <div
+                  className="w-1 bg-[#FF2E63] rounded-full transition-all duration-75"
+                  style={{ height: `${Math.max(4, Math.min(12, 4 + audioLevel * 12))}px` }}
                 />
               </div>
             </div>
 
             {/* Bottom Row of Participant Cards (Actual WebRTC remote peers) */}
             {peersArray.length > 0 && (
-              <div className="flex gap-4 shrink-0 h-40 overflow-x-auto pb-2 w-full">
+              <div className="flex gap-2 sm:gap-4 shrink-0 h-28 sm:h-40 overflow-x-auto pb-1 sm:pb-2 w-full">
 
                 {/* Peers Cards */}
                 {peersArray.map((peer) => {
                   const isSpotlighted = activePeer && activePeer.userId === peer.userId
                   return (
-                    <div 
+                    <div
                       key={peer.userId}
                       className={cn(
-                        "relative w-64 rounded-2xl overflow-hidden bg-[#16171B] border border-white/5 flex items-center justify-center shrink-0 group cursor-pointer transition-all",
+                        "relative w-40 sm:w-64 rounded-2xl overflow-hidden bg-[#16171B] border border-white/5 flex items-center justify-center shrink-0 group cursor-pointer transition-all",
                         isSpotlighted && "ring-2 ring-[#FF6A2E] shadow-lg shadow-red-500/5"
                       )}
                     >
@@ -399,15 +400,15 @@ export default function RoomPage({ roomId, user, onLeave }: Props) {
                         />
                       ) : (
                         <div className="absolute inset-0 bg-[#16171B] flex items-center justify-center">
-                          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#FF2E63] to-[#FF6A2E] flex items-center justify-center text-white text-base font-bold">
+                          <div className="w-8 h-8 sm:w-12 sm:h-12 rounded-full bg-gradient-to-br from-[#FF2E63] to-[#FF6A2E] flex items-center justify-center text-white text-xs sm:text-base font-bold">
                             {getInitials(peer.displayName)}
                           </div>
                         </div>
                       )}
                       {/* Hand raised badge */}
                       {peer.handRaised && (
-                        <div className="absolute top-2 left-2 w-6 h-6 rounded-full bg-amber-500 text-stone-950 flex items-center justify-center z-10 animate-bounce">
-                          <Hand className="w-3.5 h-3.5" />
+                        <div className="absolute top-2 left-2 w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-amber-500 text-stone-950 flex items-center justify-center z-10 animate-bounce">
+                          <Hand className="w-3 sm:w-3.5 h-3 sm:h-3.5" />
                         </div>
                       )}
                       {/* Header Menu */}
@@ -430,13 +431,13 @@ export default function RoomPage({ roomId, user, onLeave }: Props) {
                         </DropdownMenuContent>
                       </DropdownMenu>
                       {/* Footer Mic tag */}
-                      <div className="absolute bottom-2.5 left-2.5 right-2.5 flex items-center gap-1.5 py-1 px-2.5 bg-black/60 backdrop-blur-md rounded-lg z-10 w-fit">
+                      <div className="absolute bottom-1.5 left-1.5 right-1.5 sm:bottom-2.5 sm:left-2.5 sm:right-2.5 flex items-center gap-1 py-0.5 px-1.5 sm:py-1 sm:px-2.5 bg-black/60 backdrop-blur-md rounded-md sm:rounded-lg z-10 w-fit">
                         {peer.audioEnabled ? (
-                          <Mic className="w-3 h-3 text-emerald-400" />
+                          <Mic className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-emerald-400" />
                         ) : (
-                          <MicOff className="w-3 h-3 text-[#FF4A16]" />
+                          <MicOff className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-[#FF4A16]" />
                         )}
-                        <span className="text-[11px] font-bold text-white truncate max-w-[130px]">
+                        <span className="text-[9px] sm:text-[11px] font-bold text-white truncate max-w-[85px] sm:max-w-[130px]">
                           {peer.displayName}
                         </span>
                       </div>
@@ -453,14 +454,14 @@ export default function RoomPage({ roomId, user, onLeave }: Props) {
           {activePanel && (
             <div
               className={cn(
-                "flex-none h-full overflow-hidden flex flex-col bg-[#121214] border border-white/5 rounded-3xl shrink-0 z-10 w-96 transition-all duration-300",
-                activePanel === "whiteboard" && "w-[450px]"
+                "absolute inset-3 z-30 sm:relative sm:inset-auto flex-none h-[calc(100%-24px)] sm:h-full overflow-hidden flex flex-col bg-[#121214] border border-white/5 rounded-3xl shrink-0 w-auto sm:w-96 transition-all duration-300",
+                activePanel === "whiteboard" && "sm:w-[450px]"
               )}
             >
               {/* Right Panel Header */}
               <div className="flex items-center justify-between px-5 py-4 border-b border-white/5 bg-[#121214] shrink-0">
                 <div className="flex items-center gap-4">
-                  <button 
+                  <button
                     onClick={() => setActivePanel("chat")}
                     className={cn(
                       "text-base font-bold transition-all relative pb-1 cursor-pointer",
@@ -566,28 +567,31 @@ export default function RoomPage({ roomId, user, onLeave }: Props) {
         </div>
 
         {/* Controls bar at bottom */}
-        <div className="shrink-0 h-28 flex items-center justify-center bg-[#0B0C0E] border-t border-white/5 z-20 select-none">
-          <div className="flex items-center gap-7">
-            
+        <div 
+          className="shrink-0 h-16 sm:h-28 flex items-center justify-start sm:justify-center bg-[#0B0C0E] border-t border-white/5 z-20 select-none overflow-x-auto [&::-webkit-scrollbar]:hidden w-full"
+          style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+        >
+          <div className="flex items-center gap-1 sm:gap-2.5 md:gap-4 lg:gap-7 flex-nowrap shrink-0 px-4 sm:px-10 mx-auto">
+
             {/* Mic control */}
             <div className="flex flex-col items-center gap-2">
               <Tooltip>
                 <TooltipTrigger asChild>
                   <div className={cn(
-                    "h-14 rounded-full flex items-center pl-3.5 pr-1.5 gap-1 border transition-all select-none",
-                    localState.audioEnabled 
-                      ? "bg-white/5 hover:bg-white/10 border-white/5" 
+                    "h-8 w-8 sm:w-auto sm:h-14 rounded-full flex items-center justify-center sm:pl-3.5 sm:pr-1.5 gap-0.5 sm:gap-1 border transition-all select-none",
+                    localState.audioEnabled
+                      ? "bg-white/5 hover:bg-white/10 border-white/5"
                       : "bg-red-600 hover:bg-red-700 border-transparent"
                   )}>
                     <button
                       onClick={toggleAudio}
-                      className="h-12 w-10 flex items-center justify-center text-white transition-colors cursor-pointer"
+                      className="h-8 w-8 sm:h-12 sm:w-10 flex items-center justify-center text-white transition-colors cursor-pointer"
                     >
-                      {localState.audioEnabled ? <Mic className="w-[22px] h-[22px] text-white" /> : <MicOff className="w-[22px] h-[22px] text-white" />}
+                      {localState.audioEnabled ? <Mic className="w-4 h-4 sm:w-[22px] sm:h-[22px] text-white" /> : <MicOff className="w-4 h-4 sm:w-[22px] sm:h-[22px] text-white" />}
                     </button>
                     <DropdownMenu onOpenChange={(open) => { if (open) loadAudioInputs() }}>
                       <DropdownMenuTrigger asChild>
-                        <button className="h-12 w-6 text-white/70 hover:text-white flex items-center justify-center cursor-pointer">
+                        <button className="hidden sm:flex h-12 w-6 text-white/70 hover:text-white items-center justify-center cursor-pointer">
                           <ChevronDown className="w-4 h-4" />
                         </button>
                       </DropdownMenuTrigger>
@@ -616,7 +620,7 @@ export default function RoomPage({ roomId, user, onLeave }: Props) {
                 </TooltipTrigger>
                 <TooltipContent>Microphone settings</TooltipContent>
               </Tooltip>
-              <span className="text-[12px] font-semibold text-stone-400/90 mt-1">Mic</span>
+              <span className="text-[12px] font-semibold text-stone-400/90 mt-1 hidden sm:block">Mic</span>
             </div>
 
             {/* Camera control */}
@@ -626,18 +630,18 @@ export default function RoomPage({ roomId, user, onLeave }: Props) {
                   <button
                     onClick={toggleVideo}
                     className={cn(
-                      "w-14 h-14 rounded-full flex items-center justify-center cursor-pointer transition-colors text-white border",
-                      localState.videoEnabled 
-                        ? "bg-white/5 hover:bg-white/10 border-white/5" 
+                      "w-8 h-8 sm:w-14 sm:h-14 rounded-full flex items-center justify-center cursor-pointer transition-colors text-white border",
+                      localState.videoEnabled
+                        ? "bg-white/5 hover:bg-white/10 border-white/5"
                         : "bg-red-600 hover:bg-red-700 border-transparent"
                     )}
                   >
-                    {localState.videoEnabled ? <VideoIcon className="w-[22px] h-[22px] text-white fill-white" /> : <VideoOff className="w-[22px] h-[22px] text-white" />}
+                    {localState.videoEnabled ? <VideoIcon className="w-4 h-4 sm:w-[22px] sm:h-[22px] text-white fill-white" /> : <VideoOff className="w-4 h-4 sm:w-[22px] sm:h-[22px] text-white" />}
                   </button>
                 </TooltipTrigger>
                 <TooltipContent>Camera settings</TooltipContent>
               </Tooltip>
-              <span className="text-[12px] font-semibold text-stone-400/90 mt-1">Camera</span>
+              <span className="text-[12px] font-semibold text-stone-400/90 mt-1 hidden sm:block">Camera</span>
             </div>
 
             {/* Screen Share control */}
@@ -647,18 +651,18 @@ export default function RoomPage({ roomId, user, onLeave }: Props) {
                   <button
                     onClick={handleScreenShare}
                     className={cn(
-                      "w-14 h-14 rounded-full flex items-center justify-center cursor-pointer transition-colors text-white border",
-                      localState.screenSharing 
-                        ? "bg-gradient-to-br from-[#FF6A2E] to-[#FF2E63] border-transparent" 
+                      "w-8 h-8 sm:w-14 sm:h-14 rounded-full flex items-center justify-center cursor-pointer transition-colors text-white border",
+                      localState.screenSharing
+                        ? "bg-gradient-to-br from-[#FF6A2E] to-[#FF2E63] border-transparent"
                         : "bg-white/5 hover:bg-white/10 border-white/5"
                     )}
                   >
-                    {localState.screenSharing ? <MonitorOff className="w-[22px] h-[22px] text-white" /> : <Monitor className="w-[22px] h-[22px] text-white" />}
+                    {localState.screenSharing ? <MonitorOff className="w-4 h-4 sm:w-[22px] sm:h-[22px] text-white" /> : <Monitor className="w-4 h-4 sm:w-[22px] sm:h-[22px] text-white" />}
                   </button>
                 </TooltipTrigger>
                 <TooltipContent>Share screen</TooltipContent>
               </Tooltip>
-              <span className="text-[12px] font-semibold text-stone-400/90 mt-1">Screen</span>
+              <span className="text-[12px] font-semibold text-stone-400/90 mt-1 hidden sm:block">Screen</span>
             </div>
 
             {/* Chat toggle */}
@@ -668,18 +672,18 @@ export default function RoomPage({ roomId, user, onLeave }: Props) {
                   <button
                     onClick={() => togglePanel("chat")}
                     className={cn(
-                      "w-14 h-14 rounded-full flex items-center justify-center cursor-pointer transition-colors text-white border",
-                      activePanel === "chat" 
-                        ? "bg-gradient-to-br from-[#FF6A2E] to-[#FF2E63] border-transparent" 
+                      "w-8 h-8 sm:w-14 sm:h-14 rounded-full flex items-center justify-center cursor-pointer transition-colors text-white border",
+                      activePanel === "chat"
+                        ? "bg-gradient-to-br from-[#FF6A2E] to-[#FF2E63] border-transparent"
                         : "bg-white/5 hover:bg-white/10 border-white/5"
                     )}
                   >
-                    <MessageSquare className="w-[22px] h-[22px]" />
+                    <MessageSquare className="w-4 h-4 sm:w-[22px] sm:h-[22px]" />
                   </button>
                 </TooltipTrigger>
                 <TooltipContent>Toggle Chat panel</TooltipContent>
               </Tooltip>
-              <span className="text-[12px] font-semibold text-stone-400/90 mt-1">Chat</span>
+              <span className="text-[12px] font-semibold text-stone-400/90 mt-1 hidden sm:block">Chat</span>
             </div>
 
             {/* Whiteboard toggle */}
@@ -689,18 +693,18 @@ export default function RoomPage({ roomId, user, onLeave }: Props) {
                   <button
                     onClick={() => togglePanel("whiteboard")}
                     className={cn(
-                      "w-14 h-14 rounded-full flex items-center justify-center cursor-pointer transition-colors text-white border",
-                      activePanel === "whiteboard" 
-                        ? "bg-gradient-to-br from-[#FF6A2E] to-[#FF2E63] border-transparent" 
+                      "w-8 h-8 sm:w-14 sm:h-14 rounded-full flex items-center justify-center cursor-pointer transition-colors text-white border",
+                      activePanel === "whiteboard"
+                        ? "bg-gradient-to-br from-[#FF6A2E] to-[#FF2E63] border-transparent"
                         : "bg-white/5 hover:bg-white/10 border-white/5"
                     )}
                   >
-                    <Pencil className="w-[22px] h-[22px]" />
+                    <Pencil className="w-4 h-4 sm:w-[22px] sm:h-[22px]" />
                   </button>
                 </TooltipTrigger>
                 <TooltipContent>Toggle Whiteboard panel</TooltipContent>
               </Tooltip>
-              <span className="text-[12px] font-semibold text-stone-400/90 mt-1">Whiteboard</span>
+              <span className="text-[12px] font-semibold text-stone-400/90 mt-1 hidden sm:block">Whiteboard</span>
             </div>
 
             {/* Hand raise */}
@@ -713,29 +717,29 @@ export default function RoomPage({ roomId, user, onLeave }: Props) {
                       toast.success(localState.handRaised ? "Hand lowered" : "Hand raised")
                     }}
                     className={cn(
-                      "w-14 h-14 rounded-full flex items-center justify-center cursor-pointer transition-colors text-white border",
-                      localState.handRaised 
-                        ? "bg-amber-500 text-stone-950 border-transparent" 
+                      "w-8 h-8 sm:w-14 sm:h-14 rounded-full flex items-center justify-center cursor-pointer transition-colors text-white border",
+                      localState.handRaised
+                        ? "bg-amber-500 text-stone-950 border-transparent"
                         : "bg-white/5 hover:bg-white/10 border-white/5"
                     )}
                   >
-                    <Hand className="w-[22px] h-[22px]" />
+                    <Hand className="w-4 h-4 sm:w-[22px] sm:h-[22px]" />
                   </button>
                 </TooltipTrigger>
                 <TooltipContent>{localState.handRaised ? "Lower Hand" : "Raise Hand"}</TooltipContent>
               </Tooltip>
-              <span className="text-[12px] font-semibold text-stone-400/90 mt-1">Raise Hand</span>
+              <span className="text-[12px] font-semibold text-stone-400/90 mt-1 hidden sm:block">Raise Hand</span>
             </div>
 
             {/* Rotated Hangup Button (Center anchor) */}
-            <div className="flex flex-col items-center -mt-2.5">
+            <div className="flex flex-col items-center">
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <button 
-                    onClick={onLeave} 
-                    className="w-18 h-18 rounded-full bg-gradient-to-br from-[#FF4A16] to-[#E52603] flex items-center justify-center cursor-pointer hover:scale-105 active:scale-95 transition-all text-white shrink-0 shadow-lg shadow-[#E52603]/30 border-none"
+                  <button
+                    onClick={onLeave}
+                    className="w-9 h-9 sm:w-18 sm:h-18 rounded-full bg-gradient-to-br from-[#FF4A16] to-[#E52603] flex items-center justify-center cursor-pointer hover:scale-105 active:scale-95 transition-all text-white shrink-0 shadow-lg shadow-[#E52603]/30 border-none"
                   >
-                    <Phone style={{ transform: 'rotate(135deg)', transformOrigin: 'center' }} className="w-7 h-7 text-white fill-white" />
+                    <Phone style={{ transform: 'rotate(135deg)', transformOrigin: 'center' }} className="w-4.5 h-4.5 sm:w-7 sm:h-7 text-white fill-white" />
                   </button>
                 </TooltipTrigger>
                 <TooltipContent>Leave conference</TooltipContent>
@@ -758,13 +762,13 @@ export default function RoomPage({ roomId, user, onLeave }: Props) {
                       }
                     }}
                     className={cn(
-                      "w-14 h-14 rounded-full flex items-center justify-center cursor-pointer transition-colors text-white disabled:opacity-40 disabled:cursor-not-allowed border",
-                      recorder.isRecording 
-                        ? "bg-red-600 animate-pulse text-white border-transparent" 
+                      "w-8 h-8 sm:w-14 sm:h-14 rounded-full flex items-center justify-center cursor-pointer transition-colors text-white disabled:opacity-40 disabled:cursor-not-allowed border",
+                      recorder.isRecording
+                        ? "bg-red-600 animate-pulse text-white border-transparent"
                         : "bg-white/5 hover:bg-white/10 border-white/5"
                     )}
                   >
-                    <svg className="w-[22px] h-[22px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <svg className="w-4 h-4 sm:w-[22px] sm:h-[22px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                       <circle cx="12" cy="12" r="10" />
                       <circle cx="12" cy="12" r="4.5" fill="currentColor" stroke="none" />
                     </svg>
@@ -778,7 +782,7 @@ export default function RoomPage({ roomId, user, onLeave }: Props) {
                       : "Record meeting"}
                 </TooltipContent>
               </Tooltip>
-              <span className="text-[12px] font-semibold text-stone-400/90 mt-1">Record</span>
+              <span className="text-[12px] font-semibold text-stone-400/90 mt-1 hidden sm:block">Record</span>
             </div>
 
             {/* Reactions toggle */}
@@ -787,8 +791,8 @@ export default function RoomPage({ roomId, user, onLeave }: Props) {
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <DropdownMenuTrigger asChild>
-                      <button className="w-14 h-14 rounded-full bg-white/5 hover:bg-white/10 border border-white/5 flex items-center justify-center cursor-pointer text-white">
-                        <Smile className="w-[22px] h-[22px] text-white" />
+                      <button className="w-8 h-8 sm:w-14 sm:h-14 rounded-full bg-white/5 hover:bg-white/10 border border-white/5 flex items-center justify-center cursor-pointer text-white">
+                        <Smile className="w-4 h-4 sm:w-[22px] sm:h-[22px] text-white" />
                       </button>
                     </DropdownMenuTrigger>
                   </TooltipTrigger>
@@ -806,7 +810,7 @@ export default function RoomPage({ roomId, user, onLeave }: Props) {
                   ))}
                 </DropdownMenuContent>
               </DropdownMenu>
-              <span className="text-[12px] font-semibold text-stone-400/90 mt-1">Reactions</span>
+              <span className="text-[12px] font-semibold text-stone-400/90 mt-1 hidden sm:block">Reactions</span>
             </div>
 
           </div>
