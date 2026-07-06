@@ -17,6 +17,7 @@ MeetFlow app is a secure, real-time video calling and collaboration platform bui
 * **Video Meeting & Call Recording:** Records video meetings and audio calls client-side by compositing the video grid onto a canvas and mixing every participant's audio, then encrypts the result with the same AES-GCM room key before upload — playback decrypts it again on demand from the Recordings tab.
 * **Calendar & Scheduled Meetings:** Schedule meetings for a real date/time; they appear on a real calendar grid and as a room you can join early or cancel.
 * **Pinnable Dashboard Rooms:** Pin any room to feature it on the dashboard as a live-status card — pin as many as you like, with real per-user room statistics (scheduled / instant / pinned).
+* **Real-Time Room Search:** Quickly search and filter chat rooms and scheduled conferences by name or description directly from the dashboard sidebar.
 * **In-Call Reactions & Raise Hand:** Emoji reactions and hand-raise state are broadcast to every participant in real time over the room's WebSocket channel.
 * **Live Synchronized Whiteboard:** A multiplayer canvas enabling collaborative drawing and writing synchronized in real-time via WebSockets.
 * **Secure Authentication:** User sign-up and log-in powered by Django REST Framework Token Authentication.
@@ -46,6 +47,12 @@ MeetFlow app is a secure, real-time video calling and collaboration platform bui
 | Live Collaborative Whiteboard (Multiplayer canvas for real-time drawing and brainstorming) |
 |---|
 | ![Interactive Whiteboard Screen](public/screenshot-whiteboard.png) |
+
+#### Mobile Responsive Views
+
+| Dashboard (Dark Mode) | Dashboard (Light Mode) | Room Calling & Controls |
+|---|---|---|
+| ![Mobile Home Dark](public/screenshot-mobile-page-black-adaptive.png) | ![Mobile Home Light](public/screenshot-mobile-page-white-adaptive.png) | ![Mobile Room Conference](public/screenshot-mobile-room-adaptive.png) |
 
 ---
 
